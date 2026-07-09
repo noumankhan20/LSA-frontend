@@ -8,12 +8,36 @@ import {
 
 interface OtherPagesProps {
   pageId: string;
+  childrenList: Array<{
+    name: string;
+    year: string;
+    progress: number;
+    lessons: number;
+    time: string;
+    avatar: string;
+    dob?: string;
+  }>;
+  onAddChild: (child: { name: string; year: string; dob: string; avatar: string }) => void;
+  parentDetails: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    relationship: string;
+  } | null;
 }
 
-export default function OtherPages({ pageId }: OtherPagesProps) {
+export default function OtherPages({ pageId, childrenList, onAddChild, parentDetails }: OtherPagesProps) {
   const [selectedYear, setSelectedYear] = useState('Year 6');
   const [activeTab, setActiveTab] = useState('practice');
   const [quizAnswer, setQuizAnswer] = useState<string | null>(null);
+
+  // Add child states
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [childName, setChildName] = useState('');
+  const [childYear, setChildYear] = useState('Year 6');
+  const [childDob, setChildDob] = useState('');
+  const [selectedAvatar, setSelectedAvatar] = useState('https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=80');
 
   // 1. My Children
   if (pageId === 'my-children') {
@@ -21,28 +45,192 @@ export default function OtherPages({ pageId }: OtherPagesProps) {
       <div className="card-widget">
         <div className="panel-header-row">
           <h3 className="panel-title-text">My Children Profiles</h3>
-          <button className="action-btn-outline" style={{ width: 'auto', padding: '6px 14px' }}><Plus size={14} /> Add child</button>
+          <button 
+            onClick={() => setShowAddModal(true)}
+            className="action-btn-outline" 
+            style={{ width: 'auto', padding: '6px 14px', cursor: 'pointer', backgroundColor: 'var(--primary-purple-light)', borderColor: 'var(--primary-purple)', color: 'var(--primary-purple)' }}
+          >
+            <Plus size={14} /> Add Child
+          </button>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginTop: '16px' }}>
-          {[
-            { name: 'Emma Johnson', year: 'Year 6 (Key Stage 2)', progress: '82%', lessons: 5, time: '12h 40m', img: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=100' },
-            { name: 'Liam Johnson', year: 'Year 4 (Key Stage 2)', progress: '64%', lessons: 3, time: '8h 20m', img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100' },
-            { name: 'Noah Johnson', year: 'Year 2 (Key Stage 1)', progress: '76%', lessons: 4, time: '10h 15m', img: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=100' }
-          ].map((child) => (
-            <div key={child.name} className="child-row" style={{ flexDirection: 'column', alignItems: 'center', padding: '20px', gap: '12px', textAlign: 'center' }}>
-              <img src={child.img} alt={child.name} style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover' }} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', marginTop: '16px' }}>
+          {childrenList.map((child) => (
+            <div key={child.name} className="child-row" style={{ flexDirection: 'column', alignItems: 'center', padding: '20px', gap: '12px', textAlign: 'center', border: '1px solid #e2e8f0', borderRadius: '12px', backgroundColor: 'white' }}>
+              <img src={child.avatar} alt={child.name} style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover' }} />
               <div>
                 <h4 style={{ fontSize: '1rem', fontWeight: 'bold' }}>{child.name}</h4>
                 <span style={{ fontSize: '0.78rem', color: '#475569' }}>{child.year}</span>
+                {child.dob && (
+                  <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>DOB: {child.dob}</div>
+                )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-around', width: '100%', fontSize: '0.74rem', borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
-                <div><strong>{child.progress}</strong><br /><span style={{ color: '#94a3b8' }}>Progress</span></div>
+                <div><strong>{child.progress}%</strong><br /><span style={{ color: '#94a3b8' }}>Progress</span></div>
                 <div><strong>{child.lessons}</strong><br /><span style={{ color: '#94a3b8' }}>Lessons</span></div>
                 <div><strong>{child.time}</strong><br /><span style={{ color: '#94a3b8' }}>Study Time</span></div>
               </div>
             </div>
           ))}
         </div>
+
+        {/* Dynamic Add Child Modal Overlay */}
+        {showAddModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.4)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+            padding: '16px'
+          }}>
+            <div className="card-widget" style={{
+              maxWidth: '480px',
+              width: '100%',
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              border: '1px solid #e2e8f0',
+              padding: '24px',
+              position: 'relative'
+            }}>
+              <h3 className="panel-title-text" style={{ fontSize: '1.25rem', marginBottom: '8px' }}>Register New Student Profile</h3>
+              <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '20px' }}>Enter the details of your child to create their learning path on the portal.</p>
+              
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                if (childName.trim() && childDob) {
+                  onAddChild({ name: childName, year: childYear, dob: childDob, avatar: selectedAvatar });
+                  setChildName('');
+                  setChildDob('');
+                  setShowAddModal(false);
+                }
+              }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', textAlign: 'left' }}>Child's Full Name</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Sarah Johnson" 
+                    value={childName}
+                    onChange={(e) => setChildName(e.target.value)}
+                    style={{
+                      padding: '10px 12px',
+                      border: '1.5px solid #cbd5e1',
+                      borderRadius: '8px',
+                      fontSize: '0.88rem',
+                      outline: 'none',
+                      transition: 'border-color 0.15s'
+                    }}
+                    required
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', textAlign: 'left' }}>Year Group</label>
+                    <select 
+                      value={childYear}
+                      onChange={(e) => setChildYear(e.target.value)}
+                      style={{
+                        padding: '10px 12px',
+                        border: '1.5px solid #cbd5e1',
+                        borderRadius: '8px',
+                        fontSize: '0.88rem',
+                        outline: 'none'
+                      }}
+                    >
+                      {['Reception', 'Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5', 'Year 6', 'Year 7', 'Year 8', 'Year 9', 'Year 10', 'Year 11'].map(yr => (
+                        <option key={yr} value={yr}>{yr}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', textAlign: 'left' }}>Date of Birth</label>
+                    <input 
+                      type="date" 
+                      value={childDob}
+                      onChange={(e) => setChildDob(e.target.value)}
+                      style={{
+                        padding: '9px 12px',
+                        border: '1.5px solid #cbd5e1',
+                        borderRadius: '8px',
+                        fontSize: '0.88rem',
+                        outline: 'none'
+                      }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', textAlign: 'left' }}>Select Avatar Profile</label>
+                  <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', padding: '4px 0', justifyContent: 'center' }}>
+                    {[
+                      'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=80',
+                      'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&q=80&w=80',
+                      'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=80',
+                      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=80',
+                      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=80'
+                    ].map(avatarUrl => (
+                      <img 
+                        key={avatarUrl}
+                        src={avatarUrl} 
+                        alt="Avatar option"
+                        onClick={() => setSelectedAvatar(avatarUrl)}
+                        style={{
+                          width: '48px', height: '48px',
+                          borderRadius: '50%',
+                          objectFit: 'cover',
+                          cursor: 'pointer',
+                          border: selectedAvatar === avatarUrl ? '3px solid var(--primary-purple)' : '2px solid transparent',
+                          transform: selectedAvatar === avatarUrl ? 'scale(1.1)' : 'none',
+                          transition: 'all 0.15s'
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', marginTop: '12px', justifyContent: 'flex-end' }}>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowAddModal(false)}
+                    style={{
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #cbd5e1',
+                      backgroundColor: 'white',
+                      fontSize: '0.88rem',
+                      fontWeight: 600,
+                      color: '#475569',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: 'var(--primary-purple)',
+                      fontSize: '0.88rem',
+                      fontWeight: 600,
+                      color: 'white',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Register Student
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -418,20 +606,36 @@ export default function OtherPages({ pageId }: OtherPagesProps) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div className="form-group">
               <label className="input-label">Parent Account Name</label>
-              <input type="text" className="form-input" defaultValue="Emma Johnson" style={{ paddingLeft: '12px' }} />
+              <input type="text" className="form-input" defaultValue={parentDetails ? parentDetails.name : "Emma Johnson"} style={{ paddingLeft: '12px' }} />
             </div>
             <div className="form-group">
               <label className="input-label">Contact Email</label>
-              <input type="email" className="form-input" defaultValue="emma.johnson@example.co.uk" style={{ paddingLeft: '12px' }} />
+              <input type="email" className="form-input" defaultValue={parentDetails ? parentDetails.email : "emma.johnson@example.co.uk"} style={{ paddingLeft: '12px' }} />
             </div>
           </div>
 
-          <div className="form-group">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+            <div className="form-group">
+              <label className="input-label">Phone Number</label>
+              <input type="text" className="form-input" defaultValue={parentDetails ? parentDetails.phone : "+44 7946 0958"} style={{ paddingLeft: '12px' }} />
+            </div>
+            <div className="form-group">
+              <label className="input-label">Relationship to Student</label>
+              <input type="text" className="form-input" defaultValue={parentDetails ? parentDetails.relationship : "Mother"} style={{ paddingLeft: '12px' }} />
+            </div>
+          </div>
+
+          <div className="form-group" style={{ marginTop: '16px' }}>
+            <label className="input-label">Address / Location</label>
+            <input type="text" className="form-input" defaultValue={parentDetails ? parentDetails.address : "London, UK"} style={{ paddingLeft: '12px' }} />
+          </div>
+
+          <div className="form-group" style={{ marginTop: '16px' }}>
             <label className="input-label">Homeschooling Organisation/Licence ID</label>
             <input type="text" className="form-input" defaultValue="UK-HS-839284" style={{ paddingLeft: '12px' }} />
           </div>
 
-          <button className="login-btn" style={{ width: '120px', fontSize: '0.85rem', padding: '10px', border: 'none' }}>Save Changes</button>
+          <button className="login-btn" style={{ width: '120px', fontSize: '0.85rem', padding: '10px', border: 'none', marginTop: '16px' }}>Save Changes</button>
         </form>
       </div>
     );

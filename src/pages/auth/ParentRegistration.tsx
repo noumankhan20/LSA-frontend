@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
-import { Mail, Lock, ArrowRight, AlertTriangle, User, Eye, EyeOff, BookOpen, ChevronLeft } from 'lucide-react';
+import { Mail, Lock, ArrowRight, AlertTriangle, User, Eye, EyeOff, BookOpen, ChevronLeft, Phone, MapPin, Heart } from 'lucide-react';
 
 interface RegisterProps {
-  onRegisterSuccess: (username: string) => void;
+  onRegisterSuccess: (parentDetails: { name: string; email: string; phone: string; address: string; relationship: string }) => void;
 }
 
 export default function ParentRegistration({ onRegisterSuccess }: RegisterProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [relationship, setRelationship] = useState('Mother');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -22,7 +25,7 @@ export default function ParentRegistration({ onRegisterSuccess }: RegisterProps)
 
     setTimeout(() => {
       setIsLoading(false);
-      if (!name.trim() || !email.trim() || !password || !confirmPassword) {
+      if (!name.trim() || !email.trim() || !phone.trim() || !address.trim() || !password || !confirmPassword) {
         setError('Please fill in all fields.');
         return;
       }
@@ -35,7 +38,7 @@ export default function ParentRegistration({ onRegisterSuccess }: RegisterProps)
         return;
       }
       
-      onRegisterSuccess(name);
+      onRegisterSuccess({ name, email, phone, address, relationship });
     }, 800);
   };
 
@@ -331,6 +334,59 @@ export default function ParentRegistration({ onRegisterSuccess }: RegisterProps)
                     disabled={isLoading}
                     required
                   />
+                </div>
+              </div>
+
+              <div className="pr-field">
+                <label className="pr-label">Phone Number</label>
+                <div className="pr-input-wrap">
+                  <Phone size={15} className="pr-input-icon" />
+                  <input
+                    type="tel"
+                    className="pr-input"
+                    placeholder="+44 7946 0958"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="pr-field">
+                <label className="pr-label">Address / Location</label>
+                <div className="pr-input-wrap">
+                  <MapPin size={15} className="pr-input-icon" />
+                  <input
+                    type="text"
+                    className="pr-input"
+                    placeholder="e.g. London, UK"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="pr-field">
+                <label className="pr-label">Relationship to Child</label>
+                <div className="pr-input-wrap">
+                  <Heart size={15} className="pr-input-icon" />
+                  <select
+                    className="pr-input"
+                    value={relationship}
+                    onChange={(e) => setRelationship(e.target.value)}
+                    disabled={isLoading}
+                    style={{ paddingLeft: '38px', appearance: 'none', cursor: 'pointer' }}
+                    required
+                  >
+                    <option value="Mother">Mother</option>
+                    <option value="Father">Father</option>
+                    <option value="Guardian">Guardian</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <ChevronLeft size={15} style={{ position: 'absolute', right: '12px', transform: 'rotate(-90deg)', pointerEvents: 'none', color: '#7b8878' }} />
                 </div>
               </div>
 

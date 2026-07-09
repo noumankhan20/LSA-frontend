@@ -418,9 +418,11 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
               </button>
             </form>
 
-            <div className="hs-register-row">
-              Don't have an account? <a href="/register-hs">Register here</a>
-            </div>
+            {activeTab === 'parent' && (
+              <div className="hs-register-row">
+                Don't have an account? <a href="/register-hs">Register here</a>
+              </div>
+            )}
           </div>
         </div>
 

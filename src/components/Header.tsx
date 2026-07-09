@@ -5,21 +5,26 @@ interface HeaderProps {
   currentPage: string;
   currentSubpage: string;
   onLogout: () => void;
-  selectedChild: string;
-  setSelectedChild: (child: string) => void;
+  selectedChildName: string;
+  setSelectedChildName: (childName: string) => void;
   loggedInUser: string;
+  childrenList: Array<{ name: string; year: string }>;
 }
 
 export default function Header({ 
   currentPage, 
   currentSubpage, 
   onLogout,
-  selectedChild,
-  setSelectedChild,
-  loggedInUser
+  selectedChildName,
+  setSelectedChildName,
+  loggedInUser,
+  childrenList
 }: HeaderProps) {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showChildDropdown, setShowChildDropdown] = useState(false);
+
+  const selectedChildObj = childrenList.find(c => c.name === selectedChildName) || childrenList[0];
+  const activeLabel = selectedChildObj ? `${selectedChildObj.name} - ${selectedChildObj.year}` : 'Select Child';
 
   // Format Page Title
   const getPageTitle = () => {
@@ -51,7 +56,7 @@ export default function Header({
             className="breadcrumb-select-trigger"
             onClick={() => setShowChildDropdown(!showChildDropdown)}
           >
-            <span>{getPageTitle()}</span>
+            <span>{getPageTitle()} ({activeLabel})</span>
             <ChevronDown size={14} />
           </button>
 
@@ -70,11 +75,11 @@ export default function Header({
                 padding: '6px 0'
               }}
             >
-              {['All Children', 'Emma - Year 6', 'Liam - Year 4', 'Noah - Year 2'].map((child) => (
+              {childrenList.map((child) => (
                 <button
-                  key={child}
+                  key={child.name}
                   onClick={() => {
-                    setSelectedChild(child);
+                    setSelectedChildName(child.name);
                     setShowChildDropdown(false);
                   }}
                   style={{
@@ -85,12 +90,12 @@ export default function Header({
                     background: 'none',
                     border: 'none',
                     fontSize: '0.85rem',
-                    color: selectedChild === child ? '#583fc0' : '#475569',
-                    fontWeight: selectedChild === child ? '600' : 'normal',
+                    color: selectedChildName === child.name ? '#583fc0' : '#475569',
+                    fontWeight: selectedChildName === child.name ? '600' : 'normal',
                     cursor: 'pointer'
                   }}
                 >
-                  {child}
+                  {child.name} - {child.year}
                 </button>
               ))}
             </div>

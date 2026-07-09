@@ -15,7 +15,21 @@ import {
   Dumbbell
 } from 'lucide-react';
 
-export default function Home() {
+interface HomeProps {
+  childrenList: Array<{
+    name: string;
+    year: string;
+    progress: number;
+    lessons: number;
+    time: string;
+    avatar: string;
+  }>;
+  selectedChildName: string;
+  setSelectedChildName: (name: string) => void;
+  onPageChange: (page: string, subpage?: string) => void;
+}
+
+export default function Home({ childrenList, selectedChildName, setSelectedChildName, onPageChange }: HomeProps) {
   const [activeStep, setActiveStep] = useState(3); // Default step 3
   const [activeWeek, setActiveWeek] = useState(12);
 
@@ -27,16 +41,16 @@ export default function Home() {
     { num: 5, label: 'Start Learning', desc: 'Begin 39-week journey' }
   ];
 
-  const childrenData = [
-    { name: 'Emma', year: 'Year 6', progress: 82, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=80' },
-    { name: 'Liam', year: 'Year 4', progress: 64, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=80' },
-    { name: 'Noah', year: 'Year 2', progress: 76, avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=80' }
-  ];
+  const selectedChildObj = childrenList.find(c => c.name === selectedChildName) || childrenList[0];
+  const progressVal = selectedChildObj ? selectedChildObj.progress : 75;
+  const lessonsCount = selectedChildObj ? selectedChildObj.lessons : 5;
+  const completedCount = selectedChildObj ? Math.ceil((lessonsCount * progressVal) / 100) : 3;
+  const timeSpentVal = selectedChildObj ? selectedChildObj.time : '2h 15m';
 
   const lessons = [
-    { time: '09:00', subject: 'Maths - Fractions', status: 'done' },
-    { time: '10:00', subject: 'English - Reading Skills', status: 'done' },
-    { time: '11:00', subject: 'Science - Plants', status: 'live' },
+    { time: '09:00', subject: 'Maths - Fractions', status: completedCount >= 1 ? 'done' : 'upcoming' },
+    { time: '10:00', subject: 'English - Reading Skills', status: completedCount >= 2 ? 'done' : 'upcoming' },
+    { time: '11:00', subject: 'Science - Plants', status: completedCount >= 3 ? 'done' : 'live' },
     { time: '13:00', subject: 'History - Ancient Egypt', status: 'upcoming' },
     { time: '14:30', subject: 'PE - Indoor Fitness', status: 'upcoming' }
   ];
@@ -63,7 +77,12 @@ export default function Home() {
           {steps.map((s) => (
             <button
               key={s.num}
-              onClick={() => setActiveStep(s.num)}
+              onClick={() => {
+                setActiveStep(s.num);
+                if (s.num === 1) {
+                  onPageChange('my-children');
+                }
+              }}
               className={`stepper-step ${activeStep === s.num ? 'active' : ''}`}
               style={{ background: 'none', border: 'none', textAlign: 'left', color: 'white', cursor: 'pointer' }}
             >
@@ -83,24 +102,24 @@ export default function Home() {
           {/* Dashboard Summary Numbers */}
           <div className="overview-summary-strip">
             <div className="summary-strip-card">
-              <span className="strip-card-value">5</span>
+              <span className="strip-card-value">{lessonsCount}</span>
               <span className="strip-card-label">Today's Lessons</span>
             </div>
             <div className="summary-strip-card">
-              <span className="strip-card-value">3</span>
+              <span className="strip-card-value">{completedCount}</span>
               <span className="strip-card-label">Completed</span>
             </div>
             <div className="summary-strip-card">
-              <span className="strip-card-value">78%</span>
+              <span className="strip-card-value">{progressVal}%</span>
               <span className="strip-card-label">Practice Score</span>
             </div>
             <div className="summary-strip-card">
-              <span className="strip-card-value">2h 15m</span>
+              <span className="strip-card-value">{timeSpentVal}</span>
               <span className="strip-card-label">Time Spent</span>
             </div>
             <div className="summary-strip-card">
-              <span className="strip-card-value">2</span>
-              <span className="strip-card-label">Upcoming Tests</span>
+              <span className="strip-card-value">{lessonsCount - completedCount}</span>
+              <span className="strip-card-label">Upcoming Lessons</span>
             </div>
           </div>
 
@@ -110,22 +129,31 @@ export default function Home() {
             <div className="card-widget">
               <div className="panel-header-row">
                 <h3 className="panel-title-text">Children Overview</h3>
-                <button className="panel-view-all" style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <button 
+                  onClick={() => onPageChange('my-children')}
+                  className="panel-view-all" 
+                  style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: 'var(--primary-purple)', fontWeight: 'bold' }}
+                >
                   <Plus size={14} /> Add Child
                 </button>
               </div>
 
               <div className="recent-checkins-list" style={{ marginTop: '12px' }}>
-                {childrenData.map((child) => (
-                  <div key={child.name} className="child-row">
+                {childrenList.map((child) => (
+                  <div 
+                    key={child.name} 
+                    className={`child-row ${selectedChildName === child.name ? 'selected-child-active' : ''}`}
+                    onClick={() => setSelectedChildName(child.name)}
+                    style={{ cursor: 'pointer', padding: '10px', borderRadius: '8px', border: selectedChildName === child.name ? '1.5px solid var(--primary-purple)' : '1px solid transparent', transition: 'all 0.2s', backgroundColor: selectedChildName === child.name ? 'var(--primary-purple-light)' : 'transparent' }}
+                  >
                     <div className="child-avatar-info">
                       <img src={child.avatar} alt={child.name} className="child-avatar" />
                       <div className="child-name-yr">
-                        <span className="child-name">{child.name}</span>
+                        <span className="child-name" style={{ fontWeight: selectedChildName === child.name ? '700' : '650' }}>{child.name}</span>
                         <span className="child-yr">{child.year}</span>
                       </div>
                     </div>
-                    <div className="child-percentage-badge">{child.progress}%</div>
+                    <div className="child-percentage-badge" style={{ backgroundColor: selectedChildName === child.name ? 'var(--primary-purple)' : '#f1f5f9', color: selectedChildName === child.name ? 'white' : 'var(--text-main)' }}>{child.progress}%</div>
                   </div>
                 ))}
               </div>
@@ -135,7 +163,7 @@ export default function Home() {
             <div className="card-widget">
               <div className="panel-header-row">
                 <h3 className="panel-title-text">Today's Schedule</h3>
-                <span className="panel-view-all">Full Timetable →</span>
+                <span className="panel-view-all" style={{ cursor: 'pointer' }} onClick={() => onPageChange('timetable')}>Full Timetable →</span>
               </div>
               <div className="today-schedule-list" style={{ marginTop: '12px' }}>
                 {lessons.map((lesson, idx) => (
