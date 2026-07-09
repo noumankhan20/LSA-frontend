@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, ArrowRight, AlertTriangle, User, Eye, EyeOff, BookOpen, ChevronLeft, Phone, MapPin, Heart } from 'lucide-react';
+import { useRegisterParentMutation } from '../../store/apiSlice';
 
 interface RegisterProps {
   onRegisterSuccess: (parentDetails: { name: string; email: string; phone: string; address: string; relationship: string }) => void;
@@ -16,30 +17,40 @@ export default function ParentRegistration({ onRegisterSuccess }: RegisterProps)
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [registerParent, { isLoading }] = useRegisterParentMutation();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
-      if (!name.trim() || !email.trim() || !phone.trim() || !address.trim() || !password || !confirmPassword) {
-        setError('Please fill in all fields.');
-        return;
-      }
-      if (password !== confirmPassword) {
-        setError('Passwords do not match.');
-        return;
-      }
-      if (password.length < 6) {
-        setError('Password must be at least 6 characters.');
-        return;
-      }
+    if (!name.trim() || !email.trim() || !phone.trim() || !address.trim() || !password || !confirmPassword) {
+      setError('Please fill in all fields.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+    
+    try {
+      await registerParent({
+        name,
+        email,
+        phone,
+        region: address,
+        relationship,
+        password
+      }).unwrap();
       
       onRegisterSuccess({ name, email, phone, address, relationship });
-    }, 800);
+    } catch (err: any) {
+      setError(err?.data?.error || 'Registration failed. Please try again.');
+    }
   };
 
   const goBack = () => {

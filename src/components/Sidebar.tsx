@@ -21,9 +21,10 @@ interface SidebarProps {
   currentPage: string;
   currentSubpage: string;
   onPageChange: (page: string, subpage?: string) => void;
+  userRole?: string;
 }
 
-export default function Sidebar({ currentPage, currentSubpage, onPageChange }: SidebarProps) {
+export default function Sidebar({ currentPage, currentSubpage, onPageChange, userRole }: SidebarProps) {
   const [safeguardingOpen, setSafeguardingOpen] = useState(currentPage === 'safeguarding');
 
   const handleSafeguardingClick = () => {
@@ -33,16 +34,21 @@ export default function Sidebar({ currentPage, currentSubpage, onPageChange }: S
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
-    { id: 'my-children', label: 'My Children', icon: Users },
-    { id: 'my-learning', label: 'My Learning', icon: BookOpen },
-    { id: 'timetable', label: 'Timetable & Planner', icon: Calendar },
-    { id: 'subjects', label: 'Subjects', icon: Book },
-    { id: 'assignments', label: 'Assignments', icon: FileText },
-    { id: 'assessments', label: 'Assessments', icon: Award },
-    { id: 'progress', label: 'Progress', icon: TrendingUp },
-    { id: 'reports', label: 'Reports', icon: BarChart2 },
-    { id: 'resources', label: 'Resources', icon: FolderOpen },
-    { id: 'messages', label: 'Messages', icon: MessageSquare },
+    ...(userRole === 'parent' || userRole === 'student' || !userRole ? [
+      { id: 'my-children', label: 'My Children', icon: Users },
+      { id: 'my-learning', label: 'My Learning', icon: BookOpen },
+      { id: 'timetable', label: 'Timetable & Planner', icon: Calendar },
+      { id: 'subjects', label: 'Subjects', icon: Book },
+      { id: 'assignments', label: 'Assignments', icon: FileText },
+      { id: 'assessments', label: 'Assessments', icon: Award },
+      { id: 'progress', label: 'Progress', icon: TrendingUp },
+      { id: 'reports', label: 'Reports', icon: BarChart2 },
+      { id: 'resources', label: 'Resources', icon: FolderOpen },
+      { id: 'messages', label: 'Messages', icon: MessageSquare },
+    ] : []),
+    ...(userRole === 'regional_admin' || userRole === 'regionaladmin' || userRole === 'superadmin' ? [
+      { id: 'register-safeguard', label: 'Register Safeguard', icon: ShieldCheck },
+    ] : []),
   ];
 
   return (
@@ -76,67 +82,69 @@ export default function Sidebar({ currentPage, currentSubpage, onPageChange }: S
         })}
 
         {/* Safeguarding Dropdown Menu */}
-        <li className="menu-item-wrapper">
-          <button
-            onClick={handleSafeguardingClick}
-            className={`sidebar-link ${currentPage === 'safeguarding' ? 'active' : ''} ${safeguardingOpen ? 'open' : ''}`}
-            style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left' }}
-          >
-            <ShieldCheck size={18} />
-            <span>Safeguarding</span>
-            <ChevronRight size={14} className="chevron" />
-          </button>
-          
-          {safeguardingOpen && (
-            <ul className="submenu-list">
-              <li>
-                <button
-                  onClick={() => onPageChange('safeguarding', 'overview')}
-                  className={`submenu-link ${currentSubpage === 'overview' ? 'active' : ''}`}
-                  style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left' }}
-                >
-                  Overview
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onPageChange('safeguarding', 'wellbeing')}
-                  className={`submenu-link ${currentSubpage === 'wellbeing' ? 'active' : ''}`}
-                  style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left' }}
-                >
-                  Wellbeing Check-ins
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onPageChange('safeguarding', 'concern-log')}
-                  className={`submenu-link ${currentSubpage === 'concern-log' ? 'active' : ''}`}
-                  style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left' }}
-                >
-                  Concern Log
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onPageChange('safeguarding', 'support')}
-                  className={`submenu-link ${currentSubpage === 'support' ? 'active' : ''}`}
-                  style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left' }}
-                >
-                  Support & Guidance
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onPageChange('safeguarding', 'policies')}
-                  className={`submenu-link ${currentSubpage === 'policies' ? 'active' : ''}`}
-                  style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left' }}
-                >
-                  Policies
-                </button>
-              </li>
-            </ul>
-          )}
-        </li>
+        {(userRole === 'parent' || userRole === 'student' || userRole === 'safeguard' || !userRole) && (
+          <li className="menu-item-wrapper">
+            <button
+              onClick={handleSafeguardingClick}
+              className={`sidebar-link ${currentPage === 'safeguarding' ? 'active' : ''} ${safeguardingOpen ? 'open' : ''}`}
+              style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left' }}
+            >
+              <ShieldCheck size={18} />
+              <span>Safeguarding</span>
+              <ChevronRight size={14} className="chevron" />
+            </button>
+            
+            {safeguardingOpen && (
+              <ul className="submenu-list">
+                <li>
+                  <button
+                    onClick={() => onPageChange('safeguarding', 'overview')}
+                    className={`submenu-link ${currentSubpage === 'overview' ? 'active' : ''}`}
+                    style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left' }}
+                  >
+                    Overview
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => onPageChange('safeguarding', 'wellbeing')}
+                    className={`submenu-link ${currentSubpage === 'wellbeing' ? 'active' : ''}`}
+                    style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left' }}
+                  >
+                    Wellbeing Check-ins
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => onPageChange('safeguarding', 'concern-log')}
+                    className={`submenu-link ${currentSubpage === 'concern-log' ? 'active' : ''}`}
+                    style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left' }}
+                  >
+                    Concern Log
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => onPageChange('safeguarding', 'support')}
+                    className={`submenu-link ${currentSubpage === 'support' ? 'active' : ''}`}
+                    style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left' }}
+                  >
+                    Support & Guidance
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => onPageChange('safeguarding', 'policies')}
+                    className={`submenu-link ${currentSubpage === 'policies' ? 'active' : ''}`}
+                    style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left' }}
+                  >
+                    Policies
+                  </button>
+                </li>
+              </ul>
+            )}
+          </li>
+        )}
 
         {/* Settings */}
         <li className="menu-item-wrapper">

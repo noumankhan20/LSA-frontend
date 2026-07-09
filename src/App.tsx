@@ -9,14 +9,17 @@ import OtherPages from './pages/OtherPages';
 // Auth Pages
 import LandingPage from './pages/LandingPage';
 import ParentStudentLogin from './pages/auth/ParentStudentLogin';
+import StudentLogin from './pages/auth/StudentLogin';
 import TeacherStudentLogin from './pages/auth/TeacherStudentLogin';
 import SuperAdminLogin from './pages/auth/SuperAdminLogin';
 import GuardLogin from './pages/auth/GuardLogin';
 import ParentRegistration from './pages/auth/ParentRegistration';
+
 export default function App() {
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [loggedInUser, setLoggedInUser] = useState<string>('');
+  const [userRole, setUserRole] = useState<string>('');
   const [parentDetails, setParentDetails] = useState<{
     name: string;
     email: string;
@@ -59,9 +62,13 @@ export default function App() {
   }, []);
 
   // Authentication Handlers
-  const handleLoginSuccess = (user: string, _role: string) => {
+  const handleLoginSuccess = (user: string, role: string) => {
     setIsAuthenticated(true);
     setLoggedInUser(user);
+    setUserRole(role);
+    if (role === 'student') {
+      setSelectedChildName(user);
+    }
     setCurrentPage('home');
     // Clear URL to root purely for visual consistency in our mock
     window.history.pushState({}, '', '/');
@@ -76,6 +83,7 @@ export default function App() {
     setIsAuthenticated(false);
     setLoggedInUser('');
     setParentDetails(null);
+    setUserRole('');
     window.history.pushState({}, '', '/');
     setAuthRoute('/');
   };
@@ -107,6 +115,9 @@ export default function App() {
     if (authRoute === '/login-hs') {
       return <ParentStudentLogin onLoginSuccess={handleLoginSuccess} />;
     }
+    if (authRoute === '/login-student') {
+      return <StudentLogin onLoginSuccess={handleLoginSuccess} />;
+    }
     if (authRoute === '/login-tutn') {
       return <TeacherStudentLogin onLoginSuccess={handleLoginSuccess} />;
     }
@@ -130,6 +141,7 @@ export default function App() {
         currentPage={currentPage} 
         currentSubpage={currentSubpage} 
         onPageChange={handlePageChange} 
+        userRole={userRole}
       />
 
       {/* Main Content Area */}

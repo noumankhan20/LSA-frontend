@@ -1,25 +1,25 @@
 import React, { useState } from 'react';
 import { Mail, Lock, ArrowRight, AlertTriangle, Eye, EyeOff, BookOpen, ChevronLeft } from 'lucide-react';
-import { useLoginParentMutation } from '../../store/apiSlice';
+import { useLoginStudentMutation } from '../../store/apiSlice';
 
 interface LoginProps {
   onLoginSuccess: (username: string, role: string) => void;
 }
 
-export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
+export default function StudentLogin({ onLoginSuccess }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const [loginParent, { isLoading }] = useLoginParentMutation();
+
+  const [loginStudent, { isLoading }] = useLoginStudentMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     try {
-      const response = await loginParent({ email, password }).unwrap();
-      onLoginSuccess(response.parent.name || email.split('@')[0], 'parent');
+      const response = await loginStudent({ email, password }).unwrap();
+      onLoginSuccess(response.student.name || email.split('@')[0], 'student');
     } catch (err: any) {
       setError(err?.data?.error || 'Invalid credentials or connection error.');
     }
@@ -71,7 +71,7 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
           transition: background 0.15s, color 0.15s;
           text-decoration: none;
         }
-        .hs-login-back:hover { background: #f0ede4; color: #506e4d; }
+        .hs-login-back:hover { background: #f0ede4; color: #c06d48; }
 
         .hs-login-card { width: 100%; max-width: 420px; }
 
@@ -86,7 +86,7 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
         .hs-brand-mark {
           width: 48px;
           height: 48px;
-          background: #506e4d;
+          background: #c06d48;
           border-radius: 12px;
           display: flex;
           align-items: center;
@@ -99,40 +99,6 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
         /* Heading */
         .hs-login-heading { font-size: 20px; font-weight: 700; color: #2b352a; margin-bottom: 4px; text-align: center; }
         .hs-login-sub { font-size: 13.5px; color: #5a6557; text-align: center; margin-bottom: 1.75rem; }
-
-        /* Tabs */
-        .hs-tabs {
-          display: flex;
-          background: #f0ede4;
-          border-radius: 10px;
-          padding: 4px;
-          margin-bottom: 1.5rem;
-          gap: 4px;
-        }
-        .hs-tab {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 7px;
-          padding: 10px;
-          border-radius: 7px;
-          border: none;
-          font-size: 13px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.18s;
-          background: transparent;
-          color: #5a6557;
-          font-family: inherit;
-        }
-        .hs-tab.active {
-          background: #fff;
-          color: #506e4d;
-          font-weight: 600;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-        }
-        .hs-tab:hover:not(.active) { color: #2b352a; }
 
         /* Error */
         .hs-error {
@@ -153,7 +119,7 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
         .hs-field { display: flex; flex-direction: column; gap: 6px; }
         .hs-label { font-size: 13px; font-weight: 500; color: #3b4539; }
         .hs-label-row { display: flex; align-items: center; justify-content: space-between; }
-        .hs-forgot { font-size: 12px; color: #506e4d; text-decoration: none; font-weight: 500; }
+        .hs-forgot { font-size: 12px; color: #c06d48; text-decoration: none; font-weight: 500; }
         .hs-forgot:hover { text-decoration: underline; }
 
         .hs-input-wrap { position: relative; display: flex; align-items: center; }
@@ -170,7 +136,7 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
           outline: none;
           font-family: inherit;
         }
-        .hs-input:focus { border-color: #506e4d; box-shadow: 0 0 0 3px rgba(80,110,77,0.1); }
+        .hs-input:focus { border-color: #c06d48; box-shadow: 0 0 0 3px rgba(192,109,72,0.1); }
         .hs-input::placeholder { color: #7b8878; }
         .hs-input:disabled { background: #fcfbf9; cursor: not-allowed; }
 
@@ -192,7 +158,7 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
         .hs-submit-btn {
           width: 100%;
           padding: 12px;
-          background: #506e4d;
+          background: #c06d48;
           color: #fff;
           border: none;
           border-radius: 9px;
@@ -207,7 +173,7 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
           transition: background 0.15s, transform 0.1s;
           margin-top: 4px;
         }
-        .hs-submit-btn:hover:not(:disabled) { background: #415a3e; transform: translateY(-1px); }
+        .hs-submit-btn:hover:not(:disabled) { background: #a55a36; transform: translateY(-1px); }
         .hs-submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
 
         @keyframes hs-spin { to { transform: rotate(360deg); } }
@@ -219,20 +185,10 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
           animation: hs-spin 0.7s linear infinite;
         }
 
-        /* Register link */
-        .hs-register-row {
-          text-align: center;
-          margin-top: 1.25rem;
-          font-size: 13.5px;
-          color: #5a6557;
-        }
-        .hs-register-row a { color: #506e4d; font-weight: 600; text-decoration: none; }
-        .hs-register-row a:hover { text-decoration: underline; }
-
         /* RIGHT PANEL */
         .hs-login-right {
           flex: 1;
-          background: linear-gradient(145deg, #506e4d 0%, #2b352a 60%, #1c241b 100%);
+          background: linear-gradient(145deg, #c06d48 0%, #2b352a 60%, #1c241b 100%);
           display: flex;
           flex-direction: column;
           justify-content: center;
@@ -246,7 +202,7 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
         .hs-right-blob-1 {
           position: absolute;
           width: 420px; height: 420px;
-          background: radial-gradient(circle, rgba(114,140,111,0.15) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(192,109,72,0.15) 0%, transparent 70%);
           top: -80px; right: -80px;
           pointer-events: none;
         }
@@ -283,7 +239,7 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
           text-transform: uppercase;
           margin-bottom: 1.25rem;
         }
-        .hs-right-badge svg { color: #c06d48; }
+        .hs-right-badge svg { color: #dfdacd; }
 
         .hs-right-quote {
           font-size: 16px;
@@ -292,30 +248,11 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
           font-style: italic;
           margin-bottom: 1.25rem;
         }
-        .hs-right-quote::before { content: '\\201C'; font-size: 22px; color: #c06d48; margin-right: 2px; }
-        .hs-right-quote::after  { content: '\\201D'; font-size: 22px; color: #c06d48; margin-left: 2px; }
+        .hs-right-quote::before { content: '\\201C'; font-size: 22px; color: #dfdacd; margin-right: 2px; }
+        .hs-right-quote::after  { content: '\\201D'; font-size: 22px; color: #dfdacd; margin-left: 2px; }
 
-        .hs-right-attr { font-size: 12px; color: #8fa08c; }
+        .hs-right-attr { font-size: 12px; color: #c3ccbf; }
         .hs-right-attr strong { color: #f0ede4; font-weight: 600; }
-
-        .hs-right-features {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          margin-top: 1.75rem;
-          text-align: left;
-        }
-        .hs-right-feat {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 8px;
-          padding: 10px 14px;
-        }
-        .hs-right-feat-dot { width: 6px; height: 6px; border-radius: 50%; background: #c06d48; flex-shrink: 0; }
-        .hs-right-feat span { font-size: 12.5px; color: #c3ccbf; }
       `}</style>
 
       <div className="hs-login-page">
@@ -330,11 +267,11 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
             <div className="hs-brand">
               <img src="/ilmee_logo.png" alt="ILMEE Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'contain', marginBottom: '8px' }} />
               <span className="hs-brand-name">ILMEE</span>
-              <span className="hs-brand-sub">Homeschooling Portal</span>
+              <span className="hs-brand-sub">Student Portal</span>
             </div>
 
-            <h2 className="hs-login-heading">Parent Sign In</h2>
-            <p className="hs-login-sub">Enter your credentials to manage your homeschooling account</p>
+            <h2 className="hs-login-heading">Student Sign In</h2>
+            <p className="hs-login-sub">Enter your credentials to enter your learning space</p>
 
             {error && (
               <div className="hs-error">
@@ -345,13 +282,13 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
 
             <form onSubmit={handleSubmit} className="hs-form">
               <div className="hs-field">
-                <label className="hs-label">Email address</label>
+                <label className="hs-label">Username or Email</label>
                 <div className="hs-input-wrap">
                   <Mail size={15} className="hs-input-icon" />
                   <input
                     type="text"
                     className="hs-input"
-                    placeholder="parent@example.com"
+                    placeholder="student-username"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isLoading}
@@ -391,14 +328,10 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
                 {isLoading ? (
                   <><div className="hs-spinner" /> Signing in…</>
                 ) : (
-                  <>Sign in as Parent <ArrowRight size={15} /></>
+                  <>Sign in as Student <ArrowRight size={15} /></>
                 )}
               </button>
             </form>
-
-            <div className="hs-register-row">
-              Don't have an account? <a href="/register-hs">Register here</a>
-            </div>
           </div>
         </div>
 
@@ -409,36 +342,22 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
           <div className="hs-right-content">
             <div className="hs-right-img-wrap">
               <img
-                src="https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&q=80&w=700"
-                alt="Parent teaching child"
+                src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&q=80&w=700"
+                alt="Student learning"
                 className="hs-right-img"
               />
             </div>
 
             <div className="hs-right-badge">
-              <BookOpen size={11} /> Homeschooling Portal
+              <BookOpen size={11} /> Student Learning Hub
             </div>
 
             <p className="hs-right-quote">
-              ILMEE has completely transformed how I manage my child's daily schedule, assignments, and wellbeing check-ins.
+              I can check my schedule, answer questions, watch lessons, and send homework to my parents with ease.
             </p>
             <p className="hs-right-attr">
-              <strong>Emma Johnson</strong> · Parent Educator
+              <strong>Alex Johnson</strong> · Year 5 Student
             </p>
-
-            <div className="hs-right-features">
-              {[
-                'Interactive parent & student dashboards',
-                'Comprehensive safeguarding overview',
-                'Custom lesson plans & progress metrics',
-                'Secure messaging & wellbeing check-ins',
-              ].map((f) => (
-                <div key={f} className="hs-right-feat">
-                  <div className="hs-right-feat-dot" />
-                  <span>{f}</span>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
 

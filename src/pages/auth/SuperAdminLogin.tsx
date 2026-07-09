@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Mail, Lock, ArrowRight, AlertTriangle, Eye, EyeOff, ChevronLeft } from 'lucide-react';
+import { useLoginGeneralMutation } from '../../store/apiSlice';
 
 interface LoginProps {
   onLoginSuccess: (username: string, role: string) => void;
@@ -10,20 +11,22 @@ export default function SuperAdminLogin({ onLoginSuccess }: LoginProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loginGeneral, { isLoading }] = useLoginGeneralMutation();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      if (email.trim() && password.length >= 8) {
-        onLoginSuccess(email.split('@')[0], 'superadmin');
-      } else {
-        setError('Invalid admin credentials. Access denied.');
+    try {
+      const response = await loginGeneral({ email, password }).unwrap();
+      const user = response.user;
+      if (response.token) {
+        localStorage.setItem('token', response.token);
       }
-    }, 800);
+      onLoginSuccess(user.profile?.name || email.split('@')[0], user.role.toLowerCase());
+    } catch (err: any) {
+      setError(err?.data?.error || 'Invalid admin credentials or connection error.');
+    }
   };
 
 

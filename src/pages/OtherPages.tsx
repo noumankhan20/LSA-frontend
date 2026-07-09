@@ -5,6 +5,7 @@ import {
   Play,
   Plus
 } from 'lucide-react';
+import { useRegisterChildMutation, useRegisterSafeguardMutation } from '../store/apiSlice';
 
 interface OtherPagesProps {
   pageId: string;
@@ -37,7 +38,25 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
   const [childName, setChildName] = useState('');
   const [childYear, setChildYear] = useState('Year 6');
   const [childDob, setChildDob] = useState('');
+  const [childUsername, setChildUsername] = useState('');
+  const [childPassword, setChildPassword] = useState('');
+  const [modalError, setModalError] = useState<string | null>(null);
   const [selectedAvatar, setSelectedAvatar] = useState('https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=80');
+
+  const [registerChild, { isLoading: isRegistering }] = useRegisterChildMutation();
+
+  // Safeguard register states (Regional Admin only)
+  const [sgName, setSgName] = useState('');
+  const [sgEmail, setSgEmail] = useState('');
+  const [sgPhone, setSgPhone] = useState('');
+  const [sgPassword, setSgPassword] = useState('');
+  const [sgRegion, setSgRegion] = useState('London');
+  const [sgCountry, setSgCountry] = useState('United Kingdom');
+  const [sgProduct, setSgProduct] = useState('HS');
+  const [sgError, setSgError] = useState<string | null>(null);
+  const [sgSuccess, setSgSuccess] = useState<string | null>(null);
+
+  const [registerSafeguard, { isLoading: isRegisteringSg }] = useRegisterSafeguardMutation();
 
   // 1. My Children
   if (pageId === 'my-children') {
@@ -99,13 +118,36 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
               <h3 className="panel-title-text" style={{ fontSize: '1.25rem', marginBottom: '8px' }}>Register New Student Profile</h3>
               <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '20px' }}>Enter the details of your child to create their learning path on the portal.</p>
               
-              <form onSubmit={(e) => {
+              {modalError && (
+                <div style={{ color: '#b91c1c', backgroundColor: '#fef2f2', padding: '10px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #fecaca', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>⚠️ {modalError}</span>
+                </div>
+              )}
+
+              <form onSubmit={async (e) => {
                 e.preventDefault();
-                if (childName.trim() && childDob) {
-                  onAddChild({ name: childName, year: childYear, dob: childDob, avatar: selectedAvatar });
-                  setChildName('');
-                  setChildDob('');
-                  setShowAddModal(false);
+                setModalError(null);
+                if (childName.trim() && childDob && childUsername.trim() && childPassword.trim()) {
+                  try {
+                    const parentId = (parentDetails as any)?.id || 'parent-id';
+                    await registerChild({
+                      parentId,
+                      name: childName,
+                      email: childUsername,
+                      password: childPassword,
+                      dateOfBirth: childDob,
+                      grade: childYear
+                    }).unwrap();
+
+                    onAddChild({ name: childName, year: childYear, dob: childDob, avatar: selectedAvatar });
+                    setChildName('');
+                    setChildDob('');
+                    setChildUsername('');
+                    setChildPassword('');
+                    setShowAddModal(false);
+                  } catch (err: any) {
+                    setModalError(err?.data?.error || 'Failed to register child. Username might be taken.');
+                  }
                 }
               }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -165,6 +207,44 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
                   </div>
                 </div>
 
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', textAlign: 'left' }}>Student Username / Email</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. sarah_login" 
+                      value={childUsername}
+                      onChange={(e) => setChildUsername(e.target.value)}
+                      style={{
+                        padding: '10px 12px',
+                        border: '1.5px solid #cbd5e1',
+                        borderRadius: '8px',
+                        fontSize: '0.88rem',
+                        outline: 'none'
+                      }}
+                      required
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', textAlign: 'left' }}>Login Password</label>
+                    <input 
+                      type="password" 
+                      placeholder="••••••••" 
+                      value={childPassword}
+                      onChange={(e) => setChildPassword(e.target.value)}
+                      style={{
+                        padding: '10px 12px',
+                        border: '1.5px solid #cbd5e1',
+                        borderRadius: '8px',
+                        fontSize: '0.88rem',
+                        outline: 'none'
+                      }}
+                      required
+                    />
+                  </div>
+                </div>
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', textAlign: 'left' }}>Select Avatar Profile</label>
                   <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', padding: '4px 0', justifyContent: 'center' }}>
@@ -197,7 +277,14 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
                 <div style={{ display: 'flex', gap: '12px', marginTop: '12px', justifyContent: 'flex-end' }}>
                   <button 
                     type="button" 
-                    onClick={() => setShowAddModal(false)}
+                    onClick={() => {
+                      setChildName('');
+                      setChildDob('');
+                      setChildUsername('');
+                      setChildPassword('');
+                      setModalError(null);
+                      setShowAddModal(false);
+                    }}
                     style={{
                       padding: '10px 16px',
                       borderRadius: '8px',
@@ -213,18 +300,19 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
                   </button>
                   <button 
                     type="submit"
+                    disabled={isRegistering}
                     style={{
                       padding: '10px 20px',
                       borderRadius: '8px',
                       border: 'none',
-                      backgroundColor: 'var(--primary-purple)',
+                      backgroundColor: isRegistering ? '#94a3b8' : 'var(--primary-purple)',
                       fontSize: '0.88rem',
                       fontWeight: 600,
                       color: 'white',
-                      cursor: 'pointer'
+                      cursor: isRegistering ? 'not-allowed' : 'pointer'
                     }}
                   >
-                    Register Student
+                    {isRegistering ? 'Registering...' : 'Register Student'}
                   </button>
                 </div>
               </form>
@@ -636,6 +724,171 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
           </div>
 
           <button className="login-btn" style={{ width: '120px', fontSize: '0.85rem', padding: '10px', border: 'none', marginTop: '16px' }}>Save Changes</button>
+        </form>
+      </div>
+    );
+  }
+
+  // 12. Register Safeguard (Regional Admin only)
+  if (pageId === 'register-safeguard') {
+    const handleRegisterSg = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setSgError(null);
+      setSgSuccess(null);
+
+      if (!sgName.trim() || !sgEmail.trim() || !sgPassword.trim() || !sgRegion.trim()) {
+        setSgError('Please fill in all required fields.');
+        return;
+      }
+
+      try {
+        await registerSafeguard({
+          name: sgName,
+          email: sgEmail,
+          password: sgPassword,
+          phone: sgPhone,
+          region: sgRegion,
+          country: sgCountry,
+          product: sgProduct
+        }).unwrap();
+
+        setSgSuccess(`Safeguard officer "${sgName}" successfully registered under region "${sgRegion}".`);
+        setSgName('');
+        setSgEmail('');
+        setSgPhone('');
+        setSgPassword('');
+      } catch (err: any) {
+        setSgError(err?.data?.error || 'Registration failed. The email might be already taken.');
+      }
+    };
+
+    return (
+      <div className="card-widget" style={{ maxWidth: '640px', margin: '0 auto' }}>
+        <h3 className="panel-title-text" style={{ marginBottom: '8px' }}>Register Regional Safeguard Officer</h3>
+        <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '20px' }}>
+          Create a Designated Safeguarding Lead (DSL) account for your regional educational jurisdiction.
+        </p>
+
+        {sgError && (
+          <div style={{ color: '#b91c1c', backgroundColor: '#fef2f2', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #fecaca', marginBottom: '16px' }}>
+            ⚠️ {sgError}
+          </div>
+        )}
+
+        {sgSuccess && (
+          <div style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
+            ✅ {sgSuccess}
+          </div>
+        )}
+
+        <form className="form-element" onSubmit={handleRegisterSg}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="form-group">
+              <label className="input-label">Full Name</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="e.g. Rachel Adams"
+                value={sgName}
+                onChange={(e) => setSgName(e.target.value)}
+                style={{ paddingLeft: '12px' }}
+                required 
+              />
+            </div>
+            <div className="form-group">
+              <label className="input-label">Email Address (Login)</label>
+              <input 
+                type="email" 
+                className="form-input" 
+                placeholder="safeguard@example.com"
+                value={sgEmail}
+                onChange={(e) => setSgEmail(e.target.value)}
+                style={{ paddingLeft: '12px' }}
+                required 
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+            <div className="form-group">
+              <label className="input-label">Phone Number</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="+44 7946 0000"
+                value={sgPhone}
+                onChange={(e) => setSgPhone(e.target.value)}
+                style={{ paddingLeft: '12px' }}
+              />
+            </div>
+            <div className="form-group">
+              <label className="input-label">Login Password</label>
+              <input 
+                type="password" 
+                className="form-input" 
+                placeholder="••••••••"
+                value={sgPassword}
+                onChange={(e) => setSgPassword(e.target.value)}
+                style={{ paddingLeft: '12px' }}
+                required 
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '16px' }}>
+            <div className="form-group">
+              <label className="input-label">Region</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                value={sgRegion}
+                onChange={(e) => setSgRegion(e.target.value)}
+                style={{ paddingLeft: '12px' }}
+                required 
+              />
+            </div>
+            <div className="form-group">
+              <label className="input-label">Country</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                value={sgCountry}
+                onChange={(e) => setSgCountry(e.target.value)}
+                style={{ paddingLeft: '12px' }}
+                required 
+              />
+            </div>
+            <div className="form-group">
+              <label className="input-label">Product Portal</label>
+              <select 
+                value={sgProduct} 
+                onChange={(e) => setSgProduct(e.target.value)} 
+                className="form-input"
+                style={{ height: '38px', paddingLeft: '8px' }}
+              >
+                <option value="HS">Homeschooling (HS)</option>
+                <option value="LSA">Tuition Portal (LSA)</option>
+              </select>
+            </div>
+          </div>
+
+          <button 
+            type="submit" 
+            className="login-btn" 
+            disabled={isRegisteringSg}
+            style={{ 
+              width: '180px', 
+              fontSize: '0.85rem', 
+              padding: '10px', 
+              border: 'none', 
+              marginTop: '20px',
+              backgroundColor: isRegisteringSg ? '#94a3b8' : 'var(--primary-purple)',
+              color: 'white',
+              cursor: isRegisteringSg ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {isRegisteringSg ? 'Registering...' : 'Register Safeguard'}
+          </button>
         </form>
       </div>
     );

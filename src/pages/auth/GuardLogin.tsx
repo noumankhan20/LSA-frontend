@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Shield, Mail, Lock, ArrowRight, AlertTriangle, Eye, EyeOff, ChevronLeft } from 'lucide-react';
+import { useLoginSafeguardMutation } from '../../store/apiSlice';
 
 interface LoginProps {
   onLoginSuccess: (username: string, role: string) => void;
@@ -10,20 +11,18 @@ export default function GuardLogin({ onLoginSuccess }: LoginProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loginSafeguard, { isLoading }] = useLoginSafeguardMutation();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      if (email.trim() && password.length >= 6) {
-        onLoginSuccess(email.split('@')[0], 'guard');
-      } else {
-        setError('Invalid credentials. Please check your Guard ID and password.');
-      }
-    }, 800);
+    try {
+      const response = await loginSafeguard({ email, password }).unwrap();
+      onLoginSuccess(response.safeguard.name || email.split('@')[0], 'guard');
+    } catch (err: any) {
+      setError(err?.data?.error || 'Invalid credentials or connection error.');
+    }
   };
 
  

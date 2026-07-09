@@ -9,7 +9,10 @@ import {
   ChevronDown,
   BarChart,
   FileText,
-  HeartHandshake
+  HeartHandshake,
+  Users,
+  GraduationCap,
+  UserCheck
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -18,8 +21,14 @@ interface LandingPageProps {
 
 export default function LandingPage({ onNavigate }: LandingPageProps) {
   const [activeFAQ, setActiveFAQ] = useState<number | null>(null);
+  const [showParentChoice, setShowParentChoice] = useState(false);
 
-  const handleSelectPortal = (route: string) => {
+  const handleSelectPortal = (route: string, defaultRole?: string) => {
+    if (defaultRole) {
+      localStorage.setItem('login_role', defaultRole);
+    } else {
+      localStorage.removeItem('login_role');
+    }
     window.history.pushState({}, '', route);
     onNavigate(route);
   };
@@ -190,17 +199,36 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
         /* ── PORTALS ── */
         .ilm-portals-bg { background: #f7f5ef; }
         .ilm-portals-grid {
-          display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;
+          display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem;
         }
+        @media (max-width: 1024px) { .ilm-portals-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 640px) { .ilm-portals-grid { grid-template-columns: 1fr; } }
 
         .ilm-portal-card {
           background: #fff; border: 1.5px solid #dfdacd; border-radius: 14px;
-          padding: 2rem; cursor: pointer; position: relative; overflow: hidden;
-          transition: border-color 0.18s, transform 0.18s;
+          padding: 1.5rem; cursor: pointer; position: relative; overflow: hidden;
+          transition: border-color 0.18s, transform 0.18s, box-shadow 0.18s;
+          display: flex; flex-direction: column; align-items: flex-start;
+          justify-content: space-between;
+          height: 100%;
         }
-        .ilm-portal-card:hover { border-color: #506e4d; transform: translateY(-2px); }
-        .ilm-portal-card.tuition:hover { border-color: #1a3566; }
+        .ilm-portal-card:hover { 
+          border-color: #506e4d; 
+          transform: translateY(-4px); 
+          box-shadow: 0 10px 25px rgba(80, 110, 77, 0.06); 
+        }
+        .ilm-portal-card.student:hover { 
+          border-color: #c06d48; 
+          box-shadow: 0 10px 25px rgba(192, 109, 72, 0.06); 
+        }
+        .ilm-portal-card.safeguard:hover { 
+          border-color: #a03030; 
+          box-shadow: 0 10px 25px rgba(160, 48, 48, 0.06); 
+        }
+        .ilm-portal-card.admin:hover { 
+          border-color: #583fc0; 
+          box-shadow: 0 10px 25px rgba(88, 63, 192, 0.06); 
+        }
 
         .ilm-portal-top-bar {
           position: absolute; top: 0; left: 0; right: 0; height: 3px;
@@ -208,14 +236,19 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
         }
         .ilm-portal-card:hover .ilm-portal-top-bar { opacity: 1; }
         .bar-green { background: linear-gradient(90deg, #506e4d, #728c6f); }
-        .bar-blue  { background: linear-gradient(90deg, #1a3566, #4a70c8); }
+        .bar-amber { background: linear-gradient(90deg, #c06d48, #dcbba9); }
+        .bar-red { background: linear-gradient(90deg, #a03030, #c87a7a); }
+        .bar-purple { background: linear-gradient(90deg, #583fc0, #9585da); }
 
         .ilm-portal-icon {
           width: 46px; height: 46px; border-radius: 11px;
-          display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem;
+          display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+          margin-bottom: 1.25rem;
         }
         .ilm-portal-icon.green { background: #f0ede4; color: #506e4d; }
-        .ilm-portal-icon.blue  { background: #e8edf8; color: #1a3566; }
+        .ilm-portal-icon.amber { background: #faf7f0; color: #c06d48; }
+        .ilm-portal-icon.red { background: #fce8e8; color: #a03030; }
+        .ilm-portal-icon.purple { background: #f3f1ff; color: #583fc0; }
 
         .ilm-portal-tag {
           display: inline-block; font-size: 10px; letter-spacing: 0.12em;
@@ -223,7 +256,14 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
           border-radius: 20px; margin-bottom: 0.75rem;
         }
         .ilm-portal-tag.green { background: #f0ede4; color: #506e4d; }
-        .ilm-portal-tag.blue  { background: #e8edf8; color: #1a3566; }
+        .ilm-portal-tag.amber { background: #faf7f0; color: #c06d48; }
+        .ilm-portal-tag.red { background: #fce8e8; color: #a03030; }
+        .ilm-portal-tag.purple { background: #f3f1ff; color: #583fc0; }
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
 
         .ilm-portal-card h3 { font-size: 18px; font-weight: 700; color: #2b352a; margin-bottom: 0.5rem; letter-spacing: -0.01em; }
         .ilm-portal-card p  { font-size: 13.5px; color: #5a6557; line-height: 1.65; margin-bottom: 1.25rem; }
@@ -239,7 +279,9 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
           transition: gap 0.15s;
         }
         .ilm-portal-link.green { color: #506e4d; }
-        .ilm-portal-link.blue  { color: #1a3566; }
+        .ilm-portal-link.amber { color: #c06d48; }
+        .ilm-portal-link.red { color: #a03030; }
+        .ilm-portal-link.purple { color: #583fc0; }
         .ilm-portal-card:hover .ilm-portal-link { gap: 10px; }
 
         /* ── STATS BAND ── */
@@ -401,51 +443,67 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
           <div className="ilm-container">
             <div className="ilm-section-hdr">
               <p className="ilm-section-label">Select your programme</p>
-              <h2 className="ilm-section-title">Two portals. One unified platform.</h2>
+              <h2 className="ilm-section-title">Four portals. One unified platform.</h2>
               <p className="ilm-section-desc">
-                Choose the learning structure that suits your family. Both portals share
-                real-time reporting, instant progress logs, and compliance-first design.
+                Choose your role to log in or register. Both homeschooling and tuition functions share
+                real-time reporting, safety check-ins, and compliance-first design.
               </p>
             </div>
             <div className="ilm-portals-grid">
 
-              {/* Homeschooling */}
-              <div className="ilm-portal-card" onClick={() => handleSelectPortal('/login-hs')}>
+              {/* Parent Card */}
+              <div className="ilm-portal-card parent" onClick={() => handleSelectPortal('/login-hs')}>
                 <div className="ilm-portal-top-bar bar-green" />
-                <div className="ilm-portal-icon green"><School size={22} /></div>
-                <span className="ilm-portal-tag green">Homeschooling</span>
-                <h3>Homeschooling Portal</h3>
-                <p>
-                  A complete full-time curriculum solution for parents directing their child's
-                  learning. Manage daily lesson slots, wellbeing logs, and compile local-authority portfolios.
+                <div className="ilm-portal-icon green"><Users size={22} /></div>
+                <span className="ilm-portal-tag green">Parent</span>
+                <h3>Parent Portal</h3>
+                <p style={{ marginBottom: '1.5rem', flexGrow: 1 }}>
+                  Register a new account or log in to manage your child's homeschooling path, view their progress reports, and organize daily activities.
                 </p>
-                <ul className="ilm-portal-features">
-                  {['Structured 39-week termly plans', 'Comprehensive parent reporting', 'Child progress visualisers', 'Digital evidence folder uploads'].map((f) => (
-                    <li key={f} className="green"><CheckCircle size={14} /> {f}</li>
-                  ))}
-                </ul>
                 <span className="ilm-portal-link green">
-                  Access homeschooling portal <ArrowRight size={14} />
+                  Parent Login &amp; Register <ArrowRight size={14} />
                 </span>
               </div>
 
-              {/* Tuition */}
-              <div className="ilm-portal-card tuition" onClick={() => handleSelectPortal('/login-tutn')}>
-                <div className="ilm-portal-top-bar bar-blue" />
-                <div className="ilm-portal-icon blue"><BookOpen size={22} /></div>
-                <span className="ilm-portal-tag blue">Tuition</span>
-                <h3>Tuition Portal</h3>
-                <p>
-                  After-school and supplementary tutoring with DBS-checked specialists.
-                  Connect via live sessions, track assignments, and share feedback with parents directly.
+              {/* Student Card */}
+              <div className="ilm-portal-card student" onClick={() => handleSelectPortal('/login-student')}>
+                <div className="ilm-portal-top-bar bar-amber" />
+                <div className="ilm-portal-icon amber"><GraduationCap size={22} /></div>
+                <span className="ilm-portal-tag amber">Student</span>
+                <h3>Student Portal</h3>
+                <p style={{ marginBottom: '1.5rem', flexGrow: 1 }}>
+                  Access your personal homeschooling dashboard. Watch lessons, answer quizzes, complete homework, and view your schedule.
                 </p>
-                <ul className="ilm-portal-features">
-                  {['Teacher & student dashboards', 'Live virtual session logs', 'Assignment & homework tracking', 'Secure parent-tutor messaging'].map((f) => (
-                    <li key={f} className="blue"><CheckCircle size={14} /> {f}</li>
-                  ))}
-                </ul>
-                <span className="ilm-portal-link blue">
-                  Access tuition portal <ArrowRight size={14} />
+                <span className="ilm-portal-link amber">
+                  Student Login <ArrowRight size={14} />
+                </span>
+              </div>
+
+              {/* Safeguard Card */}
+              <div className="ilm-portal-card safeguard" onClick={() => handleSelectPortal('/login-guard')}>
+                <div className="ilm-portal-top-bar bar-red" />
+                <div className="ilm-portal-icon red"><Shield size={22} /></div>
+                <span className="ilm-portal-tag red">Safeguard</span>
+                <h3>Safeguard Portal</h3>
+                <p style={{ marginBottom: '1.5rem', flexGrow: 1 }}>
+                  Log in to check student wellbeing updates, review security flags, manage concern logs, and check helpline compliance.
+                </p>
+                <span className="ilm-portal-link red">
+                  Safeguard Login <ArrowRight size={14} />
+                </span>
+              </div>
+
+              {/* Regional Admin Card */}
+              <div className="ilm-portal-card admin" onClick={() => handleSelectPortal('/login-sa')}>
+                <div className="ilm-portal-top-bar bar-purple" />
+                <div className="ilm-portal-icon purple"><UserCheck size={22} /></div>
+                <span className="ilm-portal-tag purple">Regional Admin</span>
+                <h3>Regional Admin Portal</h3>
+                <p style={{ marginBottom: '1.5rem', flexGrow: 1 }}>
+                  Log in to oversee school registrations, regional approvals, manage regional safeguard accounts, and review metrics.
+                </p>
+                <span className="ilm-portal-link purple">
+                  Admin Login <ArrowRight size={14} />
                 </span>
               </div>
 
