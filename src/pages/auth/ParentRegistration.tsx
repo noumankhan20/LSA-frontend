@@ -1,30 +1,33 @@
 import React, { useState } from 'react';
 import { Mail, Lock, ArrowRight, AlertTriangle, User, Eye, EyeOff, BookOpen, ChevronLeft, Phone, MapPin, Heart } from 'lucide-react';
-import { useRegisterParentMutation } from '../../store/apiSlice';
+import { useRegisterParentMutation, useLoginParentMutation } from '../../store/apiSlice';
+import { useDispatch } from 'react-redux';
+import { setCredentials } from '../../store/slices/authSlice';
 
 interface RegisterProps {
-  onRegisterSuccess: (parentDetails: { name: string; email: string; phone: string; address: string; relationship: string }) => void;
+  onRegisterSuccess: (parentDetails: { name: string; email: string; phone: string; region: string }) => void;
 }
 
 export default function ParentRegistration({ onRegisterSuccess }: RegisterProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [relationship, setRelationship] = useState('Mother');
+  const [region, setRegion] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const dispatch = useDispatch();
   const [registerParent, { isLoading }] = useRegisterParentMutation();
+  const [loginParent] = useLoginParentMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!name.trim() || !email.trim() || !phone.trim() || !address.trim() || !password || !confirmPassword) {
+    if (!name.trim() || !email.trim() || !phone.trim() || !region.trim() || !password || !confirmPassword) {
       setError('Please fill in all fields.');
       return;
     }
@@ -42,12 +45,15 @@ export default function ParentRegistration({ onRegisterSuccess }: RegisterProps)
         name,
         email,
         phone,
-        region: address,
-        relationship,
+        region,
         password
       }).unwrap();
+
+      // Automatically login after successful registration
+      const loginResponse = await loginParent({ email, password }).unwrap();
+      dispatch(setCredentials({ user: loginResponse.user, token: loginResponse.token }));
       
-      onRegisterSuccess({ name, email, phone, address, relationship });
+      onRegisterSuccess({ name, email, phone, region });
     } catch (err: any) {
       setError(err?.data?.error || 'Registration failed. Please try again.');
     }
@@ -365,39 +371,18 @@ export default function ParentRegistration({ onRegisterSuccess }: RegisterProps)
               </div>
 
               <div className="pr-field">
-                <label className="pr-label">Address / Location</label>
+                <label className="pr-label">Region</label>
                 <div className="pr-input-wrap">
                   <MapPin size={15} className="pr-input-icon" />
                   <input
                     type="text"
                     className="pr-input"
-                    placeholder="e.g. London, UK"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="e.g. London"
+                    value={region}
+                    onChange={(e) => setRegion(e.target.value)}
                     disabled={isLoading}
                     required
                   />
-                </div>
-              </div>
-
-              <div className="pr-field">
-                <label className="pr-label">Relationship to Child</label>
-                <div className="pr-input-wrap">
-                  <Heart size={15} className="pr-input-icon" />
-                  <select
-                    className="pr-input"
-                    value={relationship}
-                    onChange={(e) => setRelationship(e.target.value)}
-                    disabled={isLoading}
-                    style={{ paddingLeft: '38px', appearance: 'none', cursor: 'pointer' }}
-                    required
-                  >
-                    <option value="Mother">Mother</option>
-                    <option value="Father">Father</option>
-                    <option value="Guardian">Guardian</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  <ChevronLeft size={15} style={{ position: 'absolute', right: '12px', transform: 'rotate(-90deg)', pointerEvents: 'none', color: '#7b8878' }} />
                 </div>
               </div>
 

@@ -34,7 +34,9 @@ export default function Sidebar({ currentPage, currentSubpage, onPageChange, use
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
-    ...(userRole === 'parent' || userRole === 'student' || !userRole ? [
+    ...(userRole === 'parent' ? [
+      { id: 'my-children', label: 'My Children', icon: Users },
+    ] : userRole === 'student' || !userRole ? [
       { id: 'my-children', label: 'My Children', icon: Users },
       { id: 'my-learning', label: 'My Learning', icon: BookOpen },
       { id: 'timetable', label: 'Timetable & Planner', icon: Calendar },
@@ -82,7 +84,7 @@ export default function Sidebar({ currentPage, currentSubpage, onPageChange, use
         })}
 
         {/* Safeguarding Dropdown Menu */}
-        {(userRole === 'parent' || userRole === 'student' || userRole === 'safeguard' || !userRole) && (
+        {(userRole === 'student' || userRole === 'safeguard' || !userRole) && (
           <li className="menu-item-wrapper">
             <button
               onClick={handleSafeguardingClick}

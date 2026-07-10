@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   FolderOpen, 
   Volume2,
   Play,
   Plus
 } from 'lucide-react';
-import { useRegisterChildMutation, useRegisterSafeguardMutation } from '../store/apiSlice';
+import { useRegisterChildMutation, useRegisterSafeguardMutation, useUpdateParentProfileMutation } from '../store/apiSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import { setCredentials } from '../store/slices/authSlice';
 
 interface OtherPagesProps {
   pageId: string;
@@ -20,15 +22,18 @@ interface OtherPagesProps {
   }>;
   onAddChild: (child: { name: string; year: string; dob: string; avatar: string }) => void;
   parentDetails: {
+    id: string;
     name: string;
     email: string;
     phone: string;
-    address: string;
-    relationship: string;
+    region: string;
   } | null;
 }
 
 export default function OtherPages({ pageId, childrenList, onAddChild, parentDetails }: OtherPagesProps) {
+  const dispatch = useDispatch();
+  const auth = useSelector((state: any) => state.auth);
+
   const [selectedYear, setSelectedYear] = useState('Year 6');
   const [activeTab, setActiveTab] = useState('practice');
   const [quizAnswer, setQuizAnswer] = useState<string | null>(null);
@@ -57,6 +62,22 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
   const [sgSuccess, setSgSuccess] = useState<string | null>(null);
 
   const [registerSafeguard, { isLoading: isRegisteringSg }] = useRegisterSafeguardMutation();
+
+  // Parent profile update states
+  const [updateParentProfile, { isLoading: isUpdatingProfile }] = useUpdateParentProfileMutation();
+  const [profileName, setProfileName] = useState(parentDetails?.name || '');
+  const [profilePhone, setProfilePhone] = useState(parentDetails?.phone || '');
+  const [profileRegion, setProfileRegion] = useState(parentDetails?.region || '');
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (parentDetails) {
+      setProfileName(parentDetails.name || '');
+      setProfilePhone(parentDetails.phone || '');
+      setProfileRegion(parentDetails.region || '');
+    }
+  }, [parentDetails?.id]);
 
   // 1. My Children
   if (pageId === 'my-children') {
@@ -687,43 +708,114 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
 
   // 11. Settings
   if (pageId === 'settings') {
+    const handleProfileSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setProfileError(null);
+      setProfileSuccess(null);
+
+      if (!profileName.trim() || !profileRegion.trim()) {
+        setProfileError('Name and Region fields are required.');
+        return;
+      }
+
+      try {
+        const response = await updateParentProfile({
+          name: profileName,
+          phone: profilePhone,
+          region: profileRegion,
+        }).unwrap();
+
+        // Update local Redux store user object with fresh profile details
+        if (auth.user) {
+          dispatch(
+            setCredentials({
+              user: {
+                ...auth.user,
+                profile: response.parent,
+              },
+              token: auth.token || '',
+            })
+          );
+        }
+        setProfileSuccess('Profile updated successfully!');
+      } catch (err: any) {
+        setProfileError(err?.data?.error || 'Failed to update profile. Please try again.');
+      }
+    };
+
     return (
-      <div className="card-widget">
+      <div className="card-widget" style={{ maxWidth: '640px' }}>
         <h3 className="panel-title-text" style={{ marginBottom: '16px' }}>Account Settings</h3>
-        <form className="form-element" onSubmit={(e) => e.preventDefault()}>
+        
+        {profileError && (
+          <div style={{ color: '#b91c1c', backgroundColor: '#fef2f2', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #fecaca', marginBottom: '16px' }}>
+            ⚠️ {profileError}
+          </div>
+        )}
+
+        {profileSuccess && (
+          <div style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
+            ✅ {profileSuccess}
+          </div>
+        )}
+
+        <form className="form-element" onSubmit={handleProfileSubmit}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div className="form-group">
               <label className="input-label">Parent Account Name</label>
-              <input type="text" className="form-input" defaultValue={parentDetails ? parentDetails.name : "Emma Johnson"} style={{ paddingLeft: '12px' }} />
+              <input 
+                type="text" 
+                className="form-input" 
+                value={profileName} 
+                onChange={(e) => setProfileName(e.target.value)}
+                style={{ paddingLeft: '12px' }} 
+                required
+              />
             </div>
             <div className="form-group">
-              <label className="input-label">Contact Email</label>
-              <input type="email" className="form-input" defaultValue={parentDetails ? parentDetails.email : "emma.johnson@example.co.uk"} style={{ paddingLeft: '12px' }} />
+              <label className="input-label">Contact Email (Read-Only)</label>
+              <input 
+                type="email" 
+                className="form-input" 
+                value={parentDetails ? parentDetails.email : ''} 
+                style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }} 
+                disabled 
+              />
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
             <div className="form-group">
               <label className="input-label">Phone Number</label>
-              <input type="text" className="form-input" defaultValue={parentDetails ? parentDetails.phone : "+44 7946 0958"} style={{ paddingLeft: '12px' }} />
+              <input 
+                type="text" 
+                className="form-input" 
+                value={profilePhone} 
+                onChange={(e) => setProfilePhone(e.target.value)}
+                style={{ paddingLeft: '12px' }} 
+              />
             </div>
             <div className="form-group">
-              <label className="input-label">Relationship to Student</label>
-              <input type="text" className="form-input" defaultValue={parentDetails ? parentDetails.relationship : "Mother"} style={{ paddingLeft: '12px' }} />
+              <label className="input-label">Region</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                value={profileRegion} 
+                onChange={(e) => setProfileRegion(e.target.value)}
+                style={{ paddingLeft: '12px' }} 
+                required
+              />
             </div>
           </div>
 
-          <div className="form-group" style={{ marginTop: '16px' }}>
-            <label className="input-label">Address / Location</label>
-            <input type="text" className="form-input" defaultValue={parentDetails ? parentDetails.address : "London, UK"} style={{ paddingLeft: '12px' }} />
-          </div>
-
-          <div className="form-group" style={{ marginTop: '16px' }}>
-            <label className="input-label">Homeschooling Organisation/Licence ID</label>
-            <input type="text" className="form-input" defaultValue="UK-HS-839284" style={{ paddingLeft: '12px' }} />
-          </div>
-
-          <button className="login-btn" style={{ width: '120px', fontSize: '0.85rem', padding: '10px', border: 'none', marginTop: '16px' }}>Save Changes</button>
+          <button 
+            type="submit"
+            className="login-btn" 
+            style={{ width: '140px', fontSize: '0.85rem', padding: '10px', border: 'none', marginTop: '24px' }}
+            disabled={isUpdatingProfile}
+          >
+            {isUpdatingProfile ? 'Saving...' : 'Save Changes'}
+          </button>
         </form>
       </div>
     );

@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { Mail, Lock, ArrowRight, AlertTriangle, User, GraduationCap, Eye, EyeOff, BookOpen, ChevronLeft } from 'lucide-react';
+import { useLoginGeneralMutation } from '../../store/apiSlice';
+import { useDispatch } from 'react-redux';
+import { setCredentials } from '../../store/slices/authSlice';
 
 interface LoginProps {
   onLoginSuccess: (username: string, role: string) => void;
@@ -11,20 +14,21 @@ export default function TeacherStudentLogin({ onLoginSuccess }: LoginProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  
+  const dispatch = useDispatch();
+  const [loginGeneral, { isLoading }] = useLoginGeneralMutation();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      if (email.trim() && password.length >= 4) {
-        onLoginSuccess(email.split('@')[0], activeTab);
-      } else {
-        setError('Please enter a valid email and a password of at least 4 characters.');
-      }
-    }, 800);
+    try {
+      const response = await loginGeneral({ email, password }).unwrap();
+      const user = response.user;
+      dispatch(setCredentials({ user: response.user, token: response.token }));
+      onLoginSuccess(user.profile?.name || email.split('@')[0], user.role.toLowerCase());
+    } catch (err: any) {
+      setError(err?.data?.error || 'Invalid credentials or connection error.');
+    }
   };
 
   const goBack = () => {

@@ -3,9 +3,15 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({
-    baseUrl: 'http://localhost:5000/api/',
+    baseUrl: '/api/',
     prepareHeaders: (headers) => {
-      const token = localStorage.getItem('token');
+      const getCookie = (name: string): string | null => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+        return null;
+      };
+      const token = getCookie('token') || localStorage.getItem('token');
       if (token) {
         headers.set('authorization', `Bearer ${token}`);
       }
@@ -74,6 +80,22 @@ export const apiSlice = createApi({
         body: credentials,
       }),
     }),
+
+    // 6. Get Current User Session (getMe)
+    getMe: builder.query<any, void>({
+      query: () => 'auth/me',
+      providesTags: ['Parent', 'Student', 'Safeguard'],
+    }),
+
+    // 7. Update Parent Profile
+    updateParentProfile: builder.mutation({
+      query: (profileData) => ({
+        url: 'auth/parent/profile',
+        method: 'PUT',
+        body: profileData,
+      }),
+      invalidatesTags: ['Parent'],
+    }),
   }),
 });
 
@@ -85,4 +107,6 @@ export const {
   useRegisterSafeguardMutation,
   useLoginSafeguardMutation,
   useLoginGeneralMutation,
+  useGetMeQuery,
+  useUpdateParentProfileMutation,
 } = apiSlice;

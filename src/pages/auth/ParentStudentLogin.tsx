@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Mail, Lock, ArrowRight, AlertTriangle, Eye, EyeOff, BookOpen, ChevronLeft } from 'lucide-react';
 import { useLoginParentMutation } from '../../store/apiSlice';
+import { useDispatch } from 'react-redux';
+import { setCredentials } from '../../store/slices/authSlice';
 
 interface LoginProps {
-  onLoginSuccess: (username: string, role: string) => void;
+  onLoginSuccess: (username: string, role: string, parentDetails?: any) => void;
 }
 
 export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
@@ -11,6 +13,7 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dispatch = useDispatch();
   
   const [loginParent, { isLoading }] = useLoginParentMutation();
 
@@ -19,7 +22,8 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
     setError(null);
     try {
       const response = await loginParent({ email, password }).unwrap();
-      onLoginSuccess(response.parent.name || email.split('@')[0], 'parent');
+      dispatch(setCredentials({ user: response.user, token: response.token }));
+      onLoginSuccess(response.user.profile?.name || email.split('@')[0], 'parent', response.user.profile);
     } catch (err: any) {
       setError(err?.data?.error || 'Invalid credentials or connection error.');
     }

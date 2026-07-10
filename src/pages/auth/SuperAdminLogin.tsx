@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Mail, Lock, ArrowRight, AlertTriangle, Eye, EyeOff, ChevronLeft } from 'lucide-react';
 import { useLoginGeneralMutation } from '../../store/apiSlice';
+import { useDispatch } from 'react-redux';
+import { setCredentials } from '../../store/slices/authSlice';
 
 interface LoginProps {
   onLoginSuccess: (username: string, role: string) => void;
@@ -11,6 +13,7 @@ export default function SuperAdminLogin({ onLoginSuccess }: LoginProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dispatch = useDispatch();
 
   const [loginGeneral, { isLoading }] = useLoginGeneralMutation();
 
@@ -20,9 +23,7 @@ export default function SuperAdminLogin({ onLoginSuccess }: LoginProps) {
     try {
       const response = await loginGeneral({ email, password }).unwrap();
       const user = response.user;
-      if (response.token) {
-        localStorage.setItem('token', response.token);
-      }
+      dispatch(setCredentials({ user: response.user, token: response.token }));
       onLoginSuccess(user.profile?.name || email.split('@')[0], user.role.toLowerCase());
     } catch (err: any) {
       setError(err?.data?.error || 'Invalid admin credentials or connection error.');
