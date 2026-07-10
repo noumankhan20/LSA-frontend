@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { 
-  FolderOpen, 
+import {
+  FolderOpen,
   Volume2,
   Play,
   Plus
@@ -85,9 +85,9 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
       <div className="card-widget">
         <div className="panel-header-row">
           <h3 className="panel-title-text">My Children Profiles</h3>
-          <button 
+          <button
             onClick={() => setShowAddModal(true)}
-            className="action-btn-outline" 
+            className="action-btn-outline"
             style={{ width: 'auto', padding: '6px 14px', cursor: 'pointer', backgroundColor: 'var(--primary-purple-light)', borderColor: 'var(--primary-purple)', color: 'var(--primary-purple)' }}
           >
             <Plus size={14} /> Add Child
@@ -138,7 +138,7 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
             }}>
               <h3 className="panel-title-text" style={{ fontSize: '1.25rem', marginBottom: '8px' }}>Register New Student Profile</h3>
               <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '20px' }}>Enter the details of your child to create their learning path on the portal.</p>
-              
+
               {modalError && (
                 <div style={{ color: '#b91c1c', backgroundColor: '#fef2f2', padding: '10px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #fecaca', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span>⚠️ {modalError}</span>
@@ -173,9 +173,9 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
               }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', textAlign: 'left' }}>Child's Full Name</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. Sarah Johnson" 
+                  <input
+                    type="text"
+                    placeholder="e.g. Sarah Johnson"
                     value={childName}
                     onChange={(e) => setChildName(e.target.value)}
                     style={{
@@ -193,7 +193,7 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', textAlign: 'left' }}>Year Group</label>
-                    <select 
+                    <select
                       value={childYear}
                       onChange={(e) => setChildYear(e.target.value)}
                       style={{
@@ -212,8 +212,8 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', textAlign: 'left' }}>Date of Birth</label>
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       value={childDob}
                       onChange={(e) => setChildDob(e.target.value)}
                       style={{
@@ -231,9 +231,9 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', textAlign: 'left' }}>Student Username / Email</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. sarah_login" 
+                    <input
+                      type="text"
+                      placeholder="e.g. sarah_login"
                       value={childUsername}
                       onChange={(e) => setChildUsername(e.target.value)}
                       style={{
@@ -249,9 +249,9 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', textAlign: 'left' }}>Login Password</label>
-                    <input 
-                      type="password" 
-                      placeholder="••••••••" 
+                    <input
+                      type="password"
+                      placeholder="••••••••"
                       value={childPassword}
                       onChange={(e) => setChildPassword(e.target.value)}
                       style={{
@@ -276,9 +276,9 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
                       'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=80',
                       'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=80'
                     ].map(avatarUrl => (
-                      <img 
+                      <img
                         key={avatarUrl}
-                        src={avatarUrl} 
+                        src={avatarUrl}
                         alt="Avatar option"
                         onClick={() => setSelectedAvatar(avatarUrl)}
                         style={{
@@ -296,8 +296,8 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', marginTop: '12px', justifyContent: 'flex-end' }}>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => {
                       setChildName('');
                       setChildDob('');
@@ -319,7 +319,7 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     type="submit"
                     disabled={isRegistering}
                     style={{
@@ -351,7 +351,7 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
         <div className="overview-main-col">
           <div className="card-widget">
             <h3 className="panel-title-text" style={{ marginBottom: '12px' }}>Active Lesson: Year 6 – Autumn Term</h3>
-            
+
             {/* Mock video player */}
             <div style={{
               width: '100%', height: '240px', backgroundColor: '#022c22', borderRadius: '12px',
@@ -493,7 +493,7 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
       <div className="card-widget">
         <h3 className="panel-title-text">Subjects Directory</h3>
         <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '20px' }}>Explore national curriculum subjects customized for Key Stages.</p>
-        
+
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
           {['Reception', 'Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5', 'Year 6', 'Year 7', 'Year 8', 'Year 9', 'Year 10', 'Year 11'].map((yr) => (
             <button
@@ -567,7 +567,7 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
 
         <div style={{ padding: '20px', border: '1px solid #e2e8f0', borderRadius: '12px', backgroundColor: 'var(--bg-portal)' }}>
           <h4 style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '10px' }}>Q1. What fraction of the shape is shaded?</h4>
-          
+
           {/* Mock visual shape */}
           <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: 'conic-gradient(var(--primary-purple) 0% 25%, #fff 25% 100%)', border: '2px solid #e2e8f0', margin: '20px auto' }}></div>
 
@@ -708,6 +708,66 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
 
   // 11. Settings
   if (pageId === 'settings') {
+    if (auth.user?.role === 'STUDENT') {
+      const studentProfile = auth.user.profile;
+      const formattedDob = studentProfile?.dateOfBirth 
+        ? new Date(studentProfile.dateOfBirth).toISOString().split('T')[0] 
+        : '';
+
+      return (
+        <div className="card-widget" style={{ maxWidth: '640px' }}>
+          <h3 className="panel-title-text" style={{ marginBottom: '16px' }}>Student Profile Details</h3>
+          <div className="form-element">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="form-group">
+                <label className="input-label">Student Name</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={studentProfile?.name || ''} 
+                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }} 
+                  disabled 
+                />
+              </div>
+              <div className="form-group">
+                <label className="input-label">Login Email / Username</label>
+                <input 
+                  type="email" 
+                  className="form-input" 
+                  value={auth.user?.email || ''} 
+                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }} 
+                  disabled 
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+              <div className="form-group">
+                <label className="input-label">Date of Birth</label>
+                <input 
+                  type="date" 
+                  className="form-input" 
+                  value={formattedDob} 
+                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }} 
+                  disabled 
+                />
+              </div>
+              <div className="form-group">
+                <label className="input-label">Grade / Year Group</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={studentProfile?.grade || ''} 
+                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }} 
+                  disabled 
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     const handleProfileSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       setProfileError(null);
@@ -746,7 +806,7 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
     return (
       <div className="card-widget" style={{ maxWidth: '640px' }}>
         <h3 className="panel-title-text" style={{ marginBottom: '16px' }}>Account Settings</h3>
-        
+
         {profileError && (
           <div style={{ color: '#b91c1c', backgroundColor: '#fef2f2', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #fecaca', marginBottom: '16px' }}>
             ⚠️ {profileError}
@@ -763,23 +823,23 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div className="form-group">
               <label className="input-label">Parent Account Name</label>
-              <input 
-                type="text" 
-                className="form-input" 
-                value={profileName} 
+              <input
+                type="text"
+                className="form-input"
+                value={profileName}
                 onChange={(e) => setProfileName(e.target.value)}
-                style={{ paddingLeft: '12px' }} 
+                style={{ paddingLeft: '12px' }}
                 required
               />
             </div>
             <div className="form-group">
               <label className="input-label">Contact Email (Read-Only)</label>
-              <input 
-                type="email" 
-                className="form-input" 
-                value={parentDetails ? parentDetails.email : ''} 
-                style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }} 
-                disabled 
+              <input
+                type="email"
+                className="form-input"
+                value={parentDetails ? parentDetails.email : ''}
+                style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
+                disabled
               />
             </div>
           </div>
@@ -787,30 +847,30 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
             <div className="form-group">
               <label className="input-label">Phone Number</label>
-              <input 
-                type="text" 
-                className="form-input" 
-                value={profilePhone} 
+              <input
+                type="text"
+                className="form-input"
+                value={profilePhone}
                 onChange={(e) => setProfilePhone(e.target.value)}
-                style={{ paddingLeft: '12px' }} 
+                style={{ paddingLeft: '12px' }}
               />
             </div>
             <div className="form-group">
               <label className="input-label">Region</label>
-              <input 
-                type="text" 
-                className="form-input" 
-                value={profileRegion} 
+              <input
+                type="text"
+                className="form-input"
+                value={profileRegion}
                 onChange={(e) => setProfileRegion(e.target.value)}
-                style={{ paddingLeft: '12px' }} 
+                style={{ paddingLeft: '12px' }}
                 required
               />
             </div>
           </div>
 
-          <button 
+          <button
             type="submit"
-            className="login-btn" 
+            className="login-btn"
             style={{ width: '140px', fontSize: '0.85rem', padding: '10px', border: 'none', marginTop: '24px' }}
             disabled={isUpdatingProfile}
           >
@@ -877,26 +937,26 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div className="form-group">
               <label className="input-label">Full Name</label>
-              <input 
-                type="text" 
-                className="form-input" 
+              <input
+                type="text"
+                className="form-input"
                 placeholder="e.g. Rachel Adams"
                 value={sgName}
                 onChange={(e) => setSgName(e.target.value)}
                 style={{ paddingLeft: '12px' }}
-                required 
+                required
               />
             </div>
             <div className="form-group">
               <label className="input-label">Email Address (Login)</label>
-              <input 
-                type="email" 
-                className="form-input" 
+              <input
+                type="email"
+                className="form-input"
                 placeholder="safeguard@example.com"
                 value={sgEmail}
                 onChange={(e) => setSgEmail(e.target.value)}
                 style={{ paddingLeft: '12px' }}
-                required 
+                required
               />
             </div>
           </div>
@@ -904,9 +964,9 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
             <div className="form-group">
               <label className="input-label">Phone Number</label>
-              <input 
-                type="text" 
-                className="form-input" 
+              <input
+                type="text"
+                className="form-input"
                 placeholder="+44 7946 0000"
                 value={sgPhone}
                 onChange={(e) => setSgPhone(e.target.value)}
@@ -915,14 +975,14 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
             </div>
             <div className="form-group">
               <label className="input-label">Login Password</label>
-              <input 
-                type="password" 
-                className="form-input" 
+              <input
+                type="password"
+                className="form-input"
                 placeholder="••••••••"
                 value={sgPassword}
                 onChange={(e) => setSgPassword(e.target.value)}
                 style={{ paddingLeft: '12px' }}
-                required 
+                required
               />
             </div>
           </div>
@@ -930,31 +990,31 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '16px' }}>
             <div className="form-group">
               <label className="input-label">Region</label>
-              <input 
-                type="text" 
-                className="form-input" 
+              <input
+                type="text"
+                className="form-input"
                 value={sgRegion}
                 onChange={(e) => setSgRegion(e.target.value)}
                 style={{ paddingLeft: '12px' }}
-                required 
+                required
               />
             </div>
             <div className="form-group">
               <label className="input-label">Country</label>
-              <input 
-                type="text" 
-                className="form-input" 
+              <input
+                type="text"
+                className="form-input"
                 value={sgCountry}
                 onChange={(e) => setSgCountry(e.target.value)}
                 style={{ paddingLeft: '12px' }}
-                required 
+                required
               />
             </div>
             <div className="form-group">
               <label className="input-label">Product Portal</label>
-              <select 
-                value={sgProduct} 
-                onChange={(e) => setSgProduct(e.target.value)} 
+              <select
+                value={sgProduct}
+                onChange={(e) => setSgProduct(e.target.value)}
                 className="form-input"
                 style={{ height: '38px', paddingLeft: '8px' }}
               >
@@ -964,15 +1024,15 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
             </div>
           </div>
 
-          <button 
-            type="submit" 
-            className="login-btn" 
+          <button
+            type="submit"
+            className="login-btn"
             disabled={isRegisteringSg}
-            style={{ 
-              width: '180px', 
-              fontSize: '0.85rem', 
-              padding: '10px', 
-              border: 'none', 
+            style={{
+              width: '180px',
+              fontSize: '0.85rem',
+              padding: '10px',
+              border: 'none',
               marginTop: '20px',
               backgroundColor: isRegisteringSg ? '#94a3b8' : 'var(--primary-purple)',
               color: 'white',
