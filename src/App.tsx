@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import SafeguardingOverview from './pages/SafeguardingOverview';
 import SafeguardingSubpages from './pages/SafeguardingSubpages';
 import OtherPages from './pages/OtherPages';
+import SafeguardDashboard from './pages/SafeguardDashboard';
 
 // Auth Pages
 import LandingPage from './pages/LandingPage';
@@ -29,6 +30,48 @@ export default function App() {
   const loggedInUser = user?.profile?.name || user?.email || '';
   const userRole = user?.role ? user.role.toLowerCase() : '';
   const parentDetails = user?.role === 'PARENT' ? { ...user?.profile, email: user?.email } : null;
+
+  // Helper to resolve page and subpage from window pathname
+  const getPageFromPath = (path: string, role: string) => {
+    const cleanedPath = path.replace(/^\//, '');
+    if (!cleanedPath) {
+      if (role === 'safeguard') return { page: 'raised-tickets', subpage: '' };
+      if (role === 'parent') return { page: 'home', subpage: '' };
+      if (role === 'student') return { page: 'home', subpage: '' };
+      if (role === 'regional_admin' || role === 'regionaladmin' || role === 'superadmin') return { page: 'home', subpage: '' };
+      return { page: 'home', subpage: '' };
+    }
+
+    if (cleanedPath === 'safeguard-dashboard') return { page: 'raised-tickets', subpage: '' };
+    if (cleanedPath === 'parent-dashboard' || cleanedPath === 'student-dashboard' || cleanedPath === 'admin-dashboard') return { page: 'home', subpage: '' };
+    
+    if (cleanedPath.startsWith('safeguarding/')) {
+      return { page: 'safeguarding', subpage: cleanedPath.split('/')[1] };
+    }
+    if (cleanedPath === 'safeguarding') {
+      return { page: 'safeguarding', subpage: 'overview' };
+    }
+
+    return { page: cleanedPath, subpage: '' };
+  };
+
+  // Helper to map page and subpage back to URL pathname
+  const getPathFromPage = (page: string, subpage: string, role: string) => {
+    if (page === 'home') {
+      if (role === 'parent') return '/parent-dashboard';
+      if (role === 'student') return '/student-dashboard';
+      if (role === 'regional_admin' || role === 'regionaladmin' || role === 'superadmin') return '/admin-dashboard';
+      return '/';
+    }
+    if (page === 'raised-tickets') {
+      return '/safeguard-dashboard';
+    }
+    if (page === 'safeguarding') {
+      if (subpage && subpage !== 'overview') return `/safeguarding/${subpage}`;
+      return '/safeguarding';
+    }
+    return `/${page}`;
+  };
 
   // Simple state-based routing for Auth URLs
   const [authRoute, setAuthRoute] = useState<string>(window.location.pathname);
@@ -63,6 +106,35 @@ export default function App() {
     }
   }, [userData, userError, dispatch]);
 
+  // Synchronize state and URL on mount or when userRole changes
+  useEffect(() => {
+    if (isAuthenticated && userRole) {
+      const { page, subpage } = getPageFromPath(window.location.pathname, userRole);
+      setCurrentPage(page);
+      setCurrentSubpage(subpage);
+
+      // Replace URL if it doesn't match the standard path mapping
+      const standardPath = getPathFromPage(page, subpage, userRole);
+      if (window.location.pathname !== standardPath) {
+        window.history.replaceState({}, '', standardPath);
+      }
+    }
+  }, [isAuthenticated, userRole]);
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setAuthRoute(window.location.pathname);
+      if (isAuthenticated && userRole) {
+        const { page, subpage } = getPageFromPath(window.location.pathname, userRole);
+        setCurrentPage(page);
+        setCurrentSubpage(subpage);
+      }
+    };
+    window.addEventListener('popstate', handleLocationChange);
+    return () => window.removeEventListener('popstate', handleLocationChange);
+  }, [isAuthenticated, userRole]);
+
   // Synchronize Children when parentDetails / userRole changes
   useEffect(() => {
     if (userRole === 'parent' && parentDetails) {
@@ -96,24 +168,22 @@ export default function App() {
     }
   }, [userRole, parentDetails, loggedInUser, selectedChildName]);
 
-  // Intercept browser navigation for auth routes
-  useEffect(() => {
-    const handleLocationChange = () => {
-      setAuthRoute(window.location.pathname);
-    };
-    window.addEventListener('popstate', handleLocationChange);
-    return () => window.removeEventListener('popstate', handleLocationChange);
-  }, []);
-
   // Authentication Handlers
-  const handleLoginSuccess = (user: string, role: string, details?: any) => {
-    setCurrentPage('home');
-    window.history.pushState({}, '', '/');
+  const handleLoginSuccess = (_user: string, role: string, details?: any) => {
+    const resolvedRole = role === 'guard' ? 'safeguard' : (details?.role ? details.role.toLowerCase() : role);
+    const { page, subpage } = getPageFromPath('/', resolvedRole);
+    setCurrentPage(page);
+    setCurrentSubpage(subpage);
+    const newPath = getPathFromPage(page, subpage, resolvedRole);
+    window.history.pushState({}, '', newPath);
   };
 
-  const handleRegisterSuccess = (details: { name: string; email: string; phone: string; address: string; relationship: string }) => {
-    setCurrentPage('home');
-    window.history.pushState({}, '', '/');
+  const handleRegisterSuccess = (_details: { name: string; email: string; phone: string; region: string }) => {
+    const { page, subpage } = getPageFromPath('/', 'parent');
+    setCurrentPage(page);
+    setCurrentSubpage(subpage);
+    const newPath = getPathFromPage(page, subpage, 'parent');
+    window.history.pushState({}, '', newPath);
   };
 
   const handleLogout = () => {
@@ -124,11 +194,10 @@ export default function App() {
 
   const handlePageChange = (page: string, subpage?: string) => {
     setCurrentPage(page);
-    if (subpage) {
-      setCurrentSubpage(subpage);
-    } else {
-      setCurrentSubpage('');
-    }
+    const resolvedSubpage = subpage || '';
+    setCurrentSubpage(resolvedSubpage);
+    const newPath = getPathFromPage(page, resolvedSubpage, userRole);
+    window.history.pushState({}, '', newPath);
   };
 
   const handleAddChild = (newChild: { name: string; year: string; dob: string; avatar: string }) => {
@@ -188,6 +257,7 @@ export default function App() {
           setSelectedChildName={setSelectedChildName}
           loggedInUser={loggedInUser}
           childrenList={children}
+          userRole={userRole}
         />
 
         <div className="app-body">
@@ -203,6 +273,10 @@ export default function App() {
             />
           )}
 
+          {(currentPage === 'raised-tickets' || currentPage === 'queries') && (
+            <SafeguardDashboard type={currentPage as 'raised-tickets' | 'queries'} />
+          )}
+
           {currentPage === 'safeguarding' && currentSubpage === 'overview' && (
             <SafeguardingOverview onPageChange={handlePageChange} />
           )}
@@ -211,7 +285,7 @@ export default function App() {
             <SafeguardingSubpages subpage={currentSubpage} />
           )}
 
-          {currentPage !== 'home' && currentPage !== 'safeguarding' && (
+          {currentPage !== 'home' && currentPage !== 'safeguarding' && currentPage !== 'raised-tickets' && currentPage !== 'queries' && (
             <OtherPages 
               pageId={currentPage} 
               childrenList={children}

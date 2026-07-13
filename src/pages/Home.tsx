@@ -20,7 +20,7 @@ import {
   Mail,
   UserPlus
 } from 'lucide-react';
-import { useRegisterChildMutation } from '../store/apiSlice';
+import { useRegisterChildMutation, useGetSafeguardsQuery } from '../store/apiSlice';
 
 interface HomeProps {
   childrenList: Array<{
@@ -62,6 +62,11 @@ export default function Home({
   const [formError, setFormError] = useState<string | null>(null);
 
   const [registerChild, { isLoading: isRegistering }] = useRegisterChildMutation();
+
+  const { data: sgData } = useGetSafeguardsQuery(undefined, {
+    skip: userRole !== 'regional_admin' && userRole !== 'regionaladmin' && userRole !== 'superadmin'
+  });
+  const hasSafeguard = (sgData?.safeguards || []).length > 0;
 
   const handleAddChildSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,6 +113,37 @@ export default function Home({
       setFormError(err?.data?.error || 'Failed to add student profile. Username/email might be taken.');
     }
   };
+
+  if (userRole === 'regional_admin' || userRole === 'regionaladmin' || userRole === 'superadmin') {
+    return (
+      <div style={{ padding: '10px 0', fontFamily: 'system-ui, sans-serif' }}>
+        <div className="card-widget" style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: 'white', padding: '30px', borderRadius: '16px', border: 'none' }}>
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '6px', color: 'white' }}>
+            Welcome, System Administrator!
+          </h2>
+          <p style={{ fontSize: '0.95rem', opacity: 0.9, maxWidth: '600px', lineHeight: '1.5', color: 'rgba(255, 255, 255, 0.85)' }}>
+            Access system configurations, register designated safeguarding officers, and monitor educational compliance across your regional jurisdiction.
+          </p>
+        </div>
+        
+        <div className="card-widget" style={{ padding: '24px', borderRadius: '16px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0' }}>
+          <h3 className="panel-title-text" style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '12px' }}>DSL Administration Actions</h3>
+          <p style={{ fontSize: '0.88rem', color: '#475569', marginBottom: '20px' }}>
+            {hasSafeguard 
+              ? 'Your region has an active Designated Safeguarding Lead (DSL) assigned. Click below to view their contact information and status.' 
+              : 'Use the actions below or the sidebar navigation to configure educational leads for your jurisdiction.'}
+          </p>
+          <button 
+            onClick={() => onPageChange('register-safeguard')}
+            className="login-btn"
+            style={{ width: 'auto', padding: '10px 20px', border: 'none', cursor: 'pointer', margin: 0 }}
+          >
+            {hasSafeguard ? 'View Safeguard Officer' : 'Register Safeguard Officer'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (userRole === 'parent') {
     return (

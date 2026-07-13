@@ -9,6 +9,7 @@ interface HeaderProps {
   setSelectedChildName: (childName: string) => void;
   loggedInUser: string;
   childrenList: Array<{ name: string; year: string }>;
+  userRole?: string;
 }
 
 export default function Header({ 
@@ -18,13 +19,25 @@ export default function Header({
   selectedChildName,
   setSelectedChildName,
   loggedInUser,
-  childrenList
+  childrenList,
+  userRole
 }: HeaderProps) {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showChildDropdown, setShowChildDropdown] = useState(false);
 
   const selectedChildObj = childrenList.find(c => c.name === selectedChildName) || childrenList[0];
   const activeLabel = selectedChildObj ? `${selectedChildObj.name} - ${selectedChildObj.year}` : 'Select Child';
+
+  const getRoleLabel = () => {
+    if (!userRole) return 'User';
+    const role = userRole.toLowerCase();
+    if (role === 'parent') return 'Parent';
+    if (role === 'student') return 'Student';
+    if (role === 'safeguard') return 'Safeguard DSL';
+    if (role === 'regional_admin' || role === 'regionaladmin') return 'Regional Admin';
+    if (role === 'superadmin') return 'Super Admin';
+    return role.charAt(0).toUpperCase() + role.slice(1);
+  };
 
   // Format Page Title
   const getPageTitle = () => {
@@ -54,10 +67,16 @@ export default function Header({
         <div className="position-relative">
           <button 
             className="breadcrumb-select-trigger"
-            onClick={() => setShowChildDropdown(!showChildDropdown)}
+            onClick={() => {
+              if (userRole === 'parent') {
+                setShowChildDropdown(!showChildDropdown);
+              }
+            }}
+            style={{ cursor: userRole === 'parent' ? 'pointer' : 'default' }}
+            disabled={userRole !== 'parent'}
           >
-            <span>{getPageTitle()} ({activeLabel})</span>
-            <ChevronDown size={14} />
+            <span>{getPageTitle()}{userRole === 'parent' ? ` (${activeLabel})` : ''}</span>
+            {userRole === 'parent' && <ChevronDown size={14} />}
           </button>
 
           {showChildDropdown && (
@@ -137,7 +156,7 @@ export default function Header({
             />
             <div className="user-info-text">
               <span className="user-name">{loggedInUser}</span>
-              <span className="user-role">Parent</span>
+              <span className="user-role">{getRoleLabel()}</span>
             </div>
             <ChevronDown size={14} style={{ color: '#94a3b8', marginLeft: '4px' }} />
           </button>

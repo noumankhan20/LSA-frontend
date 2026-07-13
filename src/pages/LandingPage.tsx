@@ -613,9 +613,6 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
             <button className="ilm-btn-gold" onClick={() => handleSelectPortal('/login-hs')}>
               Homeschooling login
             </button>
-            <button className="ilm-btn-outline-light" onClick={() => handleSelectPortal('/login-tutn')}>
-              Tuition login
-            </button>
           </div>
         </section>
 
@@ -632,7 +629,6 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
             <div className="ilm-footer-col">
               <span className="ilm-footer-col-title">Portals</span>
               <a href="/login-hs" onClick={(e) => { e.preventDefault(); handleSelectPortal('/login-hs'); }}>Homeschooling login</a>
-              <a href="/login-tutn" onClick={(e) => { e.preventDefault(); handleSelectPortal('/login-tutn'); }}>Tuition login</a>
               <a href="/register-hs" onClick={(e) => { e.preventDefault(); handleSelectPortal('/register-hs'); }}>Parent registration</a>
             </div>
 

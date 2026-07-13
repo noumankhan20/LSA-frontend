@@ -5,7 +5,7 @@ import {
   Play,
   Plus
 } from 'lucide-react';
-import { useRegisterChildMutation, useRegisterSafeguardMutation, useUpdateParentProfileMutation } from '../store/apiSlice';
+import { useRegisterChildMutation, useRegisterSafeguardMutation, useUpdateParentProfileMutation, useUpdateSafeguardProfileMutation, useGetSafeguardsQuery, useGetRegionalParentsQuery } from '../store/apiSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import { setCredentials } from '../store/slices/authSlice';
 
@@ -62,6 +62,31 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
   const [sgSuccess, setSgSuccess] = useState<string | null>(null);
 
   const [registerSafeguard, { isLoading: isRegisteringSg }] = useRegisterSafeguardMutation();
+  const [showSgModal, setShowSgModal] = useState(false);
+
+  // Regional Admin states (unconditional top-level hooks)
+  const adminProfile = auth.user?.profile || {};
+  const [adminName, setAdminName] = useState(adminProfile.name || '');
+  const [adminPhone, setAdminPhone] = useState(adminProfile.phone || '');
+  const [adminRegion] = useState(adminProfile.region || '');
+  const [adminUpdateSuccess, setAdminUpdateSuccess] = useState<string | null>(null);
+
+  // Unconditional hook call for regional parents list
+  const { data: parentsData, isLoading: isParentsLoading } = useGetRegionalParentsQuery(undefined, {
+    skip: auth.user?.role !== 'REGIONAL_ADMIN'
+  });
+
+  // Unconditional hook call for regional safeguards list
+  const { data: sgData, isLoading: isSgListLoading, refetch: refetchSgList } = useGetSafeguardsQuery(undefined, {
+    skip: auth.user?.role !== 'REGIONAL_ADMIN'
+  });
+
+  useEffect(() => {
+    if (auth.user?.profile) {
+      setAdminName(auth.user.profile.name || '');
+      setAdminPhone(auth.user.profile.phone || '');
+    }
+  }, [auth.user]);
 
   // Parent profile update states
   const [updateParentProfile, { isLoading: isUpdatingProfile }] = useUpdateParentProfileMutation();
@@ -78,6 +103,12 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
       setProfileRegion(parentDetails.region || '');
     }
   }, [parentDetails?.id]);
+
+  useEffect(() => {
+    if (auth.user?.role === 'REGIONAL_ADMIN' && auth.user.profile?.region) {
+      setSgRegion(auth.user.profile.region);
+    }
+  }, [auth.user]);
 
   // 1. My Children
   if (pageId === 'my-children') {
@@ -708,10 +739,225 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
 
   // 11. Settings
   if (pageId === 'settings') {
+    if (auth.user?.role === 'SAFEGUARD') {
+      const safeguardProfile = auth.user.profile || {};
+      const [sgProfileName, setSgProfileName] = useState(safeguardProfile.name || '');
+      const [sgProfilePhone, setSgProfilePhone] = useState(safeguardProfile.phone || '');
+      const [sgProfileRegion, setSgProfileRegion] = useState(safeguardProfile.region || '');
+      const [sgProfileCountry, setSgProfileCountry] = useState(safeguardProfile.country || '');
+      const [sgUpdateError, setSgUpdateError] = useState<string | null>(null);
+      const [sgUpdateSuccess, setSgUpdateSuccess] = useState<string | null>(null);
+      const [updateSafeguardProfile, { isLoading: isUpdatingSg }] = useUpdateSafeguardProfileMutation();
+
+      const handleSgProfileSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSgUpdateError(null);
+        setSgUpdateSuccess(null);
+
+        if (!sgProfileName.trim() || !sgProfileRegion.trim() || !sgProfileCountry.trim()) {
+          setSgUpdateError('Name, Region, and Country fields are required.');
+          return;
+        }
+
+        try {
+          const response = await updateSafeguardProfile({
+            name: sgProfileName,
+            phone: sgProfilePhone,
+            region: sgProfileRegion,
+            country: sgProfileCountry,
+          }).unwrap();
+
+          if (auth.user) {
+            dispatch(
+              setCredentials({
+                user: {
+                  ...auth.user,
+                  profile: response.safeguard,
+                },
+                token: auth.token || '',
+              })
+            );
+          }
+          setSgUpdateSuccess('Safeguard profile updated successfully!');
+        } catch (err: any) {
+          setSgUpdateError(err?.data?.error || 'Failed to update profile. Please try again.');
+        }
+      };
+
+      return (
+        <div className="card-widget" style={{ maxWidth: '640px' }}>
+          <h3 className="panel-title-text" style={{ marginBottom: '16px' }}>Safeguard DSL Profile Details</h3>
+
+          {sgUpdateError && (
+            <div style={{ color: '#b91c1c', backgroundColor: '#fef2f2', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #fecaca', marginBottom: '16px' }}>
+              ⚠️ {sgUpdateError}
+            </div>
+          )}
+
+          {sgUpdateSuccess && (
+            <div style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
+              ✅ {sgUpdateSuccess}
+            </div>
+          )}
+
+          <form className="form-element" onSubmit={handleSgProfileSubmit}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="form-group">
+                <label className="input-label">DSL Officer Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={sgProfileName}
+                  onChange={(e) => setSgProfileName(e.target.value)}
+                  style={{ paddingLeft: '12px' }}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="input-label">Login Email (Read-Only)</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  value={auth.user?.email || ''}
+                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
+                  disabled
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+              <div className="form-group">
+                <label className="input-label">Phone Number</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={sgProfilePhone}
+                  onChange={(e) => setSgProfilePhone(e.target.value)}
+                  style={{ paddingLeft: '12px' }}
+                />
+              </div>
+              <div className="form-group">
+                <label className="input-label">Education Region</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={sgProfileRegion}
+                  onChange={(e) => setSgProfileRegion(e.target.value)}
+                  style={{ paddingLeft: '12px' }}
+                  required
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+              <div className="form-group">
+                <label className="input-label">Country Jurisdiction</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={sgProfileCountry}
+                  onChange={(e) => setSgProfileCountry(e.target.value)}
+                  style={{ paddingLeft: '12px' }}
+                  required
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="login-btn"
+              style={{ width: '140px', fontSize: '0.85rem', padding: '10px', border: 'none', marginTop: '24px' }}
+              disabled={isUpdatingSg}
+            >
+              {isUpdatingSg ? 'Saving...' : 'Save Changes'}
+            </button>
+          </form>
+        </div>
+      );
+    }
+
+    if (auth.user?.role === 'REGIONAL_ADMIN' || auth.user?.role === 'SUPER_ADMIN') {
+      const handleAdminProfileSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setAdminUpdateSuccess('Administrator profile updated successfully! (Simulation)');
+      };
+
+      return (
+        <div className="card-widget" style={{ maxWidth: '640px' }}>
+          <h3 className="panel-title-text" style={{ marginBottom: '16px' }}>Administrator Account Details</h3>
+
+          {adminUpdateSuccess && (
+            <div style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
+              ✅ {adminUpdateSuccess}
+            </div>
+          )}
+
+          <form className="form-element" onSubmit={handleAdminProfileSubmit}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="form-group">
+                <label className="input-label">Admin Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={adminName}
+                  onChange={(e) => setAdminName(e.target.value)}
+                  style={{ paddingLeft: '12px' }}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="input-label">Login Email (Read-Only)</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  value={auth.user?.email || ''}
+                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
+                  disabled
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+              <div className="form-group">
+                <label className="input-label">Phone Number</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={adminPhone}
+                  onChange={(e) => setAdminPhone(e.target.value)}
+                  style={{ paddingLeft: '12px' }}
+                />
+              </div>
+              {auth.user?.role === 'REGIONAL_ADMIN' && (
+                <div className="form-group">
+                  <label className="input-label">Education Region Jurisdiction</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={adminRegion}
+                    style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
+                    disabled
+                  />
+                </div>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              className="login-btn"
+              style={{ width: '140px', fontSize: '0.85rem', padding: '10px', border: 'none', marginTop: '24px' }}
+            >
+              Save Changes
+            </button>
+          </form>
+        </div>
+      );
+    }
+
     if (auth.user?.role === 'STUDENT') {
       const studentProfile = auth.user.profile;
-      const formattedDob = studentProfile?.dateOfBirth 
-        ? new Date(studentProfile.dateOfBirth).toISOString().split('T')[0] 
+      const formattedDob = studentProfile?.dateOfBirth
+        ? new Date(studentProfile.dateOfBirth).toISOString().split('T')[0]
         : '';
 
       return (
@@ -721,22 +967,22 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <div className="form-group">
                 <label className="input-label">Student Name</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={studentProfile?.name || ''} 
-                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }} 
-                  disabled 
+                <input
+                  type="text"
+                  className="form-input"
+                  value={studentProfile?.name || ''}
+                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
+                  disabled
                 />
               </div>
               <div className="form-group">
                 <label className="input-label">Login Email / Username</label>
-                <input 
-                  type="email" 
-                  className="form-input" 
-                  value={auth.user?.email || ''} 
-                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }} 
-                  disabled 
+                <input
+                  type="email"
+                  className="form-input"
+                  value={auth.user?.email || ''}
+                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
+                  disabled
                 />
               </div>
             </div>
@@ -744,22 +990,22 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
               <div className="form-group">
                 <label className="input-label">Date of Birth</label>
-                <input 
-                  type="date" 
-                  className="form-input" 
-                  value={formattedDob} 
-                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }} 
-                  disabled 
+                <input
+                  type="date"
+                  className="form-input"
+                  value={formattedDob}
+                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
+                  disabled
                 />
               </div>
               <div className="form-group">
                 <label className="input-label">Grade / Year Group</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={studentProfile?.grade || ''} 
-                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }} 
-                  disabled 
+                <input
+                  type="text"
+                  className="form-input"
+                  value={studentProfile?.grade || ''}
+                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
+                  disabled
                 />
               </div>
             </div>
@@ -881,12 +1127,13 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
     );
   }
 
-  // 12. Register Safeguard (Regional Admin only)
+  // 12. View Safeguard Officer (Regional Admin only)
   if (pageId === 'register-safeguard') {
-    const handleRegisterSg = async (e: React.FormEvent) => {
+    const safeguards = sgData?.safeguards || [];
+
+    const handleRegisterSgSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       setSgError(null);
-      setSgSuccess(null);
 
       if (!sgName.trim() || !sgEmail.trim() || !sgPassword.trim() || !sgRegion.trim()) {
         setSgError('Please fill in all required fields.');
@@ -901,147 +1148,299 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
           phone: sgPhone,
           region: sgRegion,
           country: sgCountry,
-          product: sgProduct
+          product: 'HS'
         }).unwrap();
 
-        setSgSuccess(`Safeguard officer "${sgName}" successfully registered under region "${sgRegion}".`);
+        setShowSgModal(false);
         setSgName('');
         setSgEmail('');
         setSgPhone('');
         setSgPassword('');
+        refetchSgList();
       } catch (err: any) {
         setSgError(err?.data?.error || 'Registration failed. The email might be already taken.');
       }
     };
 
     return (
-      <div className="card-widget" style={{ maxWidth: '640px', margin: '0 auto' }}>
-        <h3 className="panel-title-text" style={{ marginBottom: '8px' }}>Register Regional Safeguard Officer</h3>
-        <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '20px' }}>
-          Create a Designated Safeguarding Lead (DSL) account for your regional educational jurisdiction.
+      <div className="card-widget" style={{ maxWidth: '640px', margin: '0 auto', position: 'relative' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <h3 className="panel-title-text" style={{ margin: 0 }}>Designated Safeguarding Lead (DSL)</h3>
+          {!isSgListLoading && safeguards.length === 0 && (
+            <button
+              onClick={() => setShowSgModal(true)}
+              className="action-btn-outline"
+              style={{ width: 'auto', padding: '6px 14px', cursor: 'pointer', backgroundColor: '#583fc0', borderColor: '#583fc0', color: 'white', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 'bold' }}
+            >
+              Register Safeguard
+            </button>
+          )}
+        </div>
+        <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '24px' }}>
+          Contact details and status of the Designated Safeguarding Lead officer assigned to your education region. Only one officer can be assigned.
         </p>
 
-        {sgError && (
-          <div style={{ color: '#b91c1c', backgroundColor: '#fef2f2', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #fecaca', marginBottom: '16px' }}>
-            ⚠️ {sgError}
+        {isSgListLoading ? (
+          <div style={{ textAlign: 'center', padding: '30px', color: '#64748b', fontSize: '0.88rem' }}>
+            Loading safeguarding officer details...
+          </div>
+        ) : safeguards.length > 0 ? (
+          safeguards.map((sg: any) => (
+            <div
+              key={sg.id}
+              className="contact-directory-row"
+              style={{
+                borderLeft: '4px solid #3b82f6',
+                backgroundColor: '#f8fafc',
+                padding: '20px',
+                borderRadius: '8px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                marginBottom: '16px'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0f172a' }}>{sg.name}</span>
+                <span style={{
+                  fontSize: '0.74rem',
+                  padding: '4px 10px',
+                  borderRadius: '12px',
+                  fontWeight: 'bold',
+                  backgroundColor: sg.user?.isActive ? '#ecfdf5' : '#fef2f2',
+                  color: sg.user?.isActive ? '#047857' : '#b91c1c'
+                }}>
+                  {sg.user?.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.82rem', color: '#475569', marginTop: '4px' }}>
+                <div>Email: <strong style={{ color: '#0f172a' }}>{sg.user?.email || 'N/A'}</strong></div>
+                <div>Phone: <strong style={{ color: '#0f172a' }}>{sg.phone || 'N/A'}</strong></div>
+                <div>Region Jurisdiction: <strong style={{ color: '#0f172a' }}>{sg.region || 'N/A'}</strong></div>
+                <div>Country: <strong style={{ color: '#0f172a' }}>{sg.country || 'N/A'}</strong></div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px 20px', border: '1px dashed #cbd5e1', borderRadius: '12px' }}>
+            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>
+              No safeguarding officer has been assigned to your region ({auth.user?.profile?.region || 'N/A'}) yet. Click "Register Safeguard" to assign one.
+            </p>
           </div>
         )}
 
-        {sgSuccess && (
-          <div style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
-            ✅ {sgSuccess}
+        {/* Safeguard Registration Modal */}
+        {showSgModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.4)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}>
+            <div className="card-widget" style={{ maxWidth: '520px', width: '100%', margin: 0, border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', backgroundColor: 'white' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '16px' }}>
+                <h3 className="panel-title-text" style={{ margin: 0 }}>Register Safeguard Officer</h3>
+                <button
+                  onClick={() => { setShowSgModal(false); setSgError(null); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', color: '#64748b' }}
+                >
+                  Cancel
+                </button>
+              </div>
+
+              {sgError && (
+                <div style={{ color: '#b91c1c', backgroundColor: '#fef2f2', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #fecaca', marginBottom: '16px' }}>
+                  ⚠️ {sgError}
+                </div>
+              )}
+
+              <form className="form-element" onSubmit={handleRegisterSgSubmit}>
+                <div className="form-group" style={{ marginBottom: '12px' }}>
+                  <label className="input-label">Full Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Rachel Adams"
+                    value={sgName}
+                    onChange={(e) => setSgName(e.target.value)}
+                    style={{ paddingLeft: '12px' }}
+                    required
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '12px' }}>
+                  <label className="input-label">Email Address (Login)</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    placeholder="safeguard@example.com"
+                    value={sgEmail}
+                    onChange={(e) => setSgEmail(e.target.value)}
+                    style={{ paddingLeft: '12px' }}
+                    required
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <div className="form-group">
+                    <label className="input-label">Phone Number</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="+44 7946 0000"
+                      value={sgPhone}
+                      onChange={(e) => setSgPhone(e.target.value)}
+                      style={{ paddingLeft: '12px' }}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="input-label">Login Password</label>
+                    <input
+                      type="password"
+                      className="form-input"
+                      placeholder="••••••••"
+                      value={sgPassword}
+                      onChange={(e) => setSgPassword(e.target.value)}
+                      style={{ paddingLeft: '12px' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+                  <div className="form-group">
+                    <label className="input-label">Region (Read-Only)</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={sgRegion}
+                      style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
+                      disabled
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="input-label">Country</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. United Kingdom"
+                      value={sgCountry}
+                      onChange={(e) => setSgCountry(e.target.value)}
+                      style={{ paddingLeft: '12px' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="login-btn"
+                  disabled={isRegisteringSg}
+                  style={{ width: '100%', border: 'none', margin: 0, padding: '12px', backgroundColor: isRegisteringSg ? '#94a3b8' : 'var(--primary-purple)', color: 'white', cursor: isRegisteringSg ? 'not-allowed' : 'pointer' }}
+                >
+                  {isRegisteringSg ? 'Registering...' : 'Register Safeguard Officer'}
+                </button>
+              </form>
+            </div>
           </div>
         )}
+      </div>
+    );
+  }
 
-        <form className="form-element" onSubmit={handleRegisterSg}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div className="form-group">
-              <label className="input-label">Full Name</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="e.g. Rachel Adams"
-                value={sgName}
-                onChange={(e) => setSgName(e.target.value)}
-                style={{ paddingLeft: '12px' }}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label className="input-label">Email Address (Login)</label>
-              <input
-                type="email"
-                className="form-input"
-                placeholder="safeguard@example.com"
-                value={sgEmail}
-                onChange={(e) => setSgEmail(e.target.value)}
-                style={{ paddingLeft: '12px' }}
-                required
-              />
-            </div>
+  // 13. Regional Parents Directory (Regional Admin only)
+  if (pageId === 'regional-parents') {
+    const parents = parentsData?.parents || [];
+
+    return (
+      <div className="card-widget" style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <h3 className="panel-title-text" style={{ marginBottom: '8px' }}>Parents Directory</h3>
+        <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '24px' }}>
+          Registered parent accounts and their enrolled children within your regional jurisdiction.
+        </p>
+
+        {isParentsLoading ? (
+          <div style={{ textAlign: 'center', padding: '30px', color: '#64748b', fontSize: '0.88rem' }}>
+            Loading parents directory...
           </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
-            <div className="form-group">
-              <label className="input-label">Phone Number</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="+44 7946 0000"
-                value={sgPhone}
-                onChange={(e) => setSgPhone(e.target.value)}
-                style={{ paddingLeft: '12px' }}
-              />
-            </div>
-            <div className="form-group">
-              <label className="input-label">Login Password</label>
-              <input
-                type="password"
-                className="form-input"
-                placeholder="••••••••"
-                value={sgPassword}
-                onChange={(e) => setSgPassword(e.target.value)}
-                style={{ paddingLeft: '12px' }}
-                required
-              />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '16px' }}>
-            <div className="form-group">
-              <label className="input-label">Region</label>
-              <input
-                type="text"
-                className="form-input"
-                value={sgRegion}
-                onChange={(e) => setSgRegion(e.target.value)}
-                style={{ paddingLeft: '12px' }}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label className="input-label">Country</label>
-              <input
-                type="text"
-                className="form-input"
-                value={sgCountry}
-                onChange={(e) => setSgCountry(e.target.value)}
-                style={{ paddingLeft: '12px' }}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label className="input-label">Product Portal</label>
-              <select
-                value={sgProduct}
-                onChange={(e) => setSgProduct(e.target.value)}
-                className="form-input"
-                style={{ height: '38px', paddingLeft: '8px' }}
+        ) : parents.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {parents.map((parent: any) => (
+              <div 
+                key={parent.id} 
+                className="contact-directory-row" 
+                style={{ 
+                  borderLeft: '4px solid #10b981', 
+                  backgroundColor: '#f8fafc', 
+                  padding: '20px', 
+                  borderRadius: '8px', 
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                }}
               >
-                <option value="HS">Homeschooling (HS)</option>
-                <option value="LSA">Tuition Portal (LSA)</option>
-              </select>
-            </div>
-          </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <div>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 'bold', color: '#0f172a', margin: '0 0 4px 0' }}>{parent.name}</h4>
+                    <div style={{ display: 'flex', gap: '16px', fontSize: '0.8rem', color: '#64748b' }}>
+                      <span>Email: <strong style={{ color: '#334155' }}>{parent.user?.email}</strong></span>
+                      {parent.phone && <span>Phone: <strong style={{ color: '#334155' }}>{parent.phone}</strong></span>}
+                      <span>Region: <strong style={{ color: '#334155' }}>{parent.region}</strong></span>
+                    </div>
+                  </div>
+                  <span style={{ 
+                    fontSize: '0.7rem', 
+                    padding: '3px 8px', 
+                    borderRadius: '12px', 
+                    fontWeight: 'bold', 
+                    backgroundColor: parent.user?.isActive ? '#ecfdf5' : '#fef2f2',
+                    color: parent.user?.isActive ? '#047857' : '#b91c1c'
+                  }}>
+                    {parent.user?.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
 
-          <button
-            type="submit"
-            className="login-btn"
-            disabled={isRegisteringSg}
-            style={{
-              width: '180px',
-              fontSize: '0.85rem',
-              padding: '10px',
-              border: 'none',
-              marginTop: '20px',
-              backgroundColor: isRegisteringSg ? '#94a3b8' : 'var(--primary-purple)',
-              color: 'white',
-              cursor: isRegisteringSg ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {isRegisteringSg ? 'Registering...' : 'Register Safeguard'}
-          </button>
-        </form>
+                {parent.students && parent.students.length > 0 ? (
+                  <div style={{ marginTop: '14px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: '600', color: '#475569', display: 'block', marginBottom: '8px' }}>
+                      Enrolled Children ({parent.students.length}):
+                    </span>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
+                      {parent.students.map((student: any) => (
+                        <div key={student.id} style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>
+                            🎓
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#1e293b' }}>{student.name}</div>
+                            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{student.grade || 'N/A'}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: '10px', fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                    No children enrolled yet.
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px 20px', border: '1px dashed #cbd5e1', borderRadius: '12px' }}>
+            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>
+              No parents registered in your region ({auth.user?.profile?.region || 'N/A'}) yet.
+            </p>
+          </div>
+        )}
       </div>
     );
   }

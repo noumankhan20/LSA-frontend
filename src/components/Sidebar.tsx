@@ -32,7 +32,10 @@ export default function Sidebar({ currentPage, currentSubpage, onPageChange, use
     onPageChange('safeguarding', 'overview');
   };
 
-  const navItems = [
+  const navItems = userRole === 'safeguard' ? [
+    { id: 'raised-tickets', label: 'Raised Tkts', icon: FileText },
+    { id: 'queries', label: 'Queries', icon: MessageSquare },
+  ] : [
     { id: 'home', label: 'Home', icon: Home },
     ...(userRole === 'parent' ? [
       { id: 'my-children', label: 'My Children', icon: Users },
@@ -49,7 +52,8 @@ export default function Sidebar({ currentPage, currentSubpage, onPageChange, use
       { id: 'messages', label: 'Messages', icon: MessageSquare },
     ] : []),
     ...(userRole === 'regional_admin' || userRole === 'regionaladmin' || userRole === 'superadmin' ? [
-      { id: 'register-safeguard', label: 'Register Safeguard', icon: ShieldCheck },
+      { id: 'regional-parents', label: 'Parents', icon: Users },
+      { id: 'register-safeguard', label: 'Safeguard Officer', icon: ShieldCheck },
     ] : []),
   ];
 
@@ -84,7 +88,8 @@ export default function Sidebar({ currentPage, currentSubpage, onPageChange, use
         })}
 
         {/* Safeguarding Dropdown Menu */}
-        {(userRole === 'student' || userRole === 'safeguard' || !userRole) && (
+        {(userRole === 'student' || !userRole) && (
+
           <li className="menu-item-wrapper">
             <button
               onClick={handleSafeguardingClick}

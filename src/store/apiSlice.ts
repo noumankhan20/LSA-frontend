@@ -96,6 +96,28 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Parent'],
     }),
+
+    // 8. Update Safeguard Profile
+    updateSafeguardProfile: builder.mutation({
+      query: (profileData) => ({
+        url: 'auth/safeguard/profile',
+        method: 'PUT',
+        body: profileData,
+      }),
+      invalidatesTags: ['Safeguard'],
+    }),
+
+    // 9. Get Safeguards list
+    getSafeguards: builder.query<any, void>({
+      query: () => 'auth/safeguards',
+      providesTags: ['Safeguard'],
+    }),
+
+    // 10. Get Regional Parents list
+    getRegionalParents: builder.query<any, void>({
+      query: () => 'auth/regional/parents',
+      providesTags: ['Parent'],
+    }),
   }),
 });
 
@@ -109,4 +131,8 @@ export const {
   useLoginGeneralMutation,
   useGetMeQuery,
   useUpdateParentProfileMutation,
+  useUpdateSafeguardProfileMutation,
+  useGetSafeguardsQuery,
+  useGetRegionalParentsQuery,
 } = apiSlice;
+
