@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, ArrowRight, AlertTriangle, Eye, EyeOff, BookOpen, ChevronLeft } from 'lucide-react';
-import { useLoginParentMutation } from '../../store/apiSlice';
+import { useLoginParentMutation, useForgotPasswordMutation, useResetPasswordMutation } from '../../store/apiSlice';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../../store/slices/authSlice';
 
@@ -13,16 +13,28 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const dispatch = useDispatch();
   
+  // Forgot password states
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [forgotStep, setForgotStep] = useState(1);
+  const [forgotMessage, setForgotMessage] = useState<string | null>(null);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+
+  const dispatch = useDispatch();
+
   const [loginParent, { isLoading }] = useLoginParentMutation();
+  const [forgotPasswordMutation, { isLoading: isForgotLoading }] = useForgotPasswordMutation();
+  const [resetPasswordMutation, { isLoading: isResetLoading }] = useResetPasswordMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     try {
       const response = await loginParent({ email, password }).unwrap();
-      dispatch(setCredentials({ user: response.user, token: response.token }));
+      dispatch(setCredentials({ user: response.user }));
       onLoginSuccess(response.user.profile?.name || email.split('@')[0], 'parent', response.user.profile);
     } catch (err: any) {
       setError(err?.data?.error || 'Invalid credentials or connection error.');
@@ -326,84 +338,200 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
 
         {/* LEFT */}
         <div className="hs-login-left">
-          <button className="hs-login-back" onClick={goBack}>
-            <ChevronLeft size={16} /> Back to home
-          </button>
-
-          <div className="hs-login-card">
-            <div className="hs-brand">
-              <img src="/ilmee_logo.png" alt="ILMEE Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'contain', marginBottom: '8px' }} />
-              <span className="hs-brand-name">ILMEE</span>
-              <span className="hs-brand-sub">Homeschooling Portal</span>
-            </div>
-
-            <h2 className="hs-login-heading">Parent Sign In</h2>
-            <p className="hs-login-sub">Enter your credentials to manage your homeschooling account</p>
-
-            {error && (
-              <div className="hs-error">
-                <AlertTriangle size={15} />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="hs-form">
-              <div className="hs-field">
-                <label className="hs-label">Email address</label>
-                <div className="hs-input-wrap">
-                  <Mail size={15} className="hs-input-icon" />
-                  <input
-                    type="text"
-                    className="hs-input"
-                    placeholder="parent@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isLoading}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="hs-field">
-                <div className="hs-label-row">
-                  <label className="hs-label">Password</label>
-                  <a href="#forgot" className="hs-forgot">Forgot password?</a>
-                </div>
-                <div className="hs-input-wrap">
-                  <Lock size={15} className="hs-input-icon" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    className="hs-input"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="hs-eye-btn"
-                    onClick={() => setShowPassword(!showPassword)}
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-              </div>
-
-              <button type="submit" className="hs-submit-btn" disabled={isLoading}>
-                {isLoading ? (
-                  <><div className="hs-spinner" /> Signing in…</>
-                ) : (
-                  <>Sign in as Parent <ArrowRight size={15} /></>
-                )}
+          {showForgotPassword ? (
+            <>
+              <button className="hs-login-back" onClick={() => { setShowForgotPassword(false); setForgotStep(1); setForgotError(null); setForgotMessage(null); }}>
+                <ChevronLeft size={16} /> Back to Sign In
               </button>
-            </form>
+              
+              <div className="hs-login-card">
+                <div className="hs-brand">
+                  <img src="/ilmee_logo.png" alt="ILMEE Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'contain', marginBottom: '8px' }} />
+                  <span className="hs-brand-name">LSA</span>
+                  <span className="hs-brand-sub">Password Recovery</span>
+                </div>
 
-            <div className="hs-register-row">
-              Don't have an account? <a href="/register-hs">Register here</a>
-            </div>
-          </div>
+                <h2 className="hs-login-heading">Forgot Password</h2>
+                <p className="hs-login-sub">Reset your account password using your email address</p>
+
+                {forgotError && (
+                  <div className="hs-error">
+                    <AlertTriangle size={15} />
+                    <span>{forgotError}</span>
+                  </div>
+                )}
+
+                {forgotMessage && (
+                  <div style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
+                    ✅ {forgotMessage}
+                  </div>
+                )}
+
+                {forgotStep === 1 ? (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setForgotError(null);
+                    setForgotMessage(null);
+                    try {
+                      await forgotPasswordMutation({ email: forgotEmail }).unwrap();
+                      setForgotStep(2);
+                      setForgotMessage('Verification code sent to your email.');
+                    } catch (err: any) {
+                      setForgotError(err?.data?.error || 'Failed to send verification code.');
+                    }
+                  }} className="hs-form">
+                    <div className="hs-field">
+                      <label className="hs-label">Email address</label>
+                      <div className="hs-input-wrap">
+                        <Mail size={15} className="hs-input-icon" />
+                        <input
+                          type="email"
+                          className="hs-input"
+                          placeholder="parent@example.com"
+                          value={forgotEmail}
+                          onChange={(e) => setForgotEmail(e.target.value)}
+                          disabled={isForgotLoading}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <button type="submit" className="hs-submit-btn" disabled={isForgotLoading}>
+                      {isForgotLoading ? 'Sending...' : 'Send Verification Code'}
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setForgotError(null);
+                    setForgotMessage(null);
+                    try {
+                      await resetPasswordMutation({ email: forgotEmail, otp, newPassword }).unwrap();
+                      setForgotMessage('Password reset successful! Redirecting to login...');
+                      setTimeout(() => {
+                        setShowForgotPassword(false);
+                        setForgotStep(1);
+                        setForgotEmail('');
+                        setOtp('');
+                        setNewPassword('');
+                        setForgotMessage(null);
+                      }, 2500);
+                    } catch (err: any) {
+                      setForgotError(err?.data?.error || 'Failed to reset password.');
+                    }
+                  }} className="hs-form">
+                    <div className="hs-field">
+                      <label className="hs-label">Verification Code (OTP)</label>
+                      <input
+                        type="text"
+                        className="hs-input"
+                        placeholder="Enter 6-digit code"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        disabled={isResetLoading}
+                        required
+                      />
+                    </div>
+                    <div className="hs-field" style={{ marginTop: '16px' }}>
+                      <label className="hs-label">New Password</label>
+                      <input
+                        type="password"
+                        className="hs-input"
+                        placeholder="••••••••"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        disabled={isResetLoading}
+                        required
+                      />
+                    </div>
+                    <button type="submit" className="hs-submit-btn" style={{ marginTop: '24px' }} disabled={isResetLoading}>
+                      {isResetLoading ? 'Resetting...' : 'Reset Password'}
+                    </button>
+                  </form>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <button className="hs-login-back" onClick={goBack}>
+                <ChevronLeft size={16} /> Back to home
+              </button>
+
+              <div className="hs-login-card">
+                <div className="hs-brand">
+                  <img src="/ilmee_logo.png" alt="ILMEE Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'contain', marginBottom: '8px' }} />
+                  <span className="hs-brand-name">LSA</span>
+                  <span className="hs-brand-sub">Homeschooling Portal</span>
+                </div>
+
+                <h2 className="hs-login-heading">Parent Sign In</h2>
+                <p className="hs-login-sub">Enter your credentials to manage your homeschooling account</p>
+
+                {error && (
+                  <div className="hs-error">
+                    <AlertTriangle size={15} />
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="hs-form">
+                  <div className="hs-field">
+                    <label className="hs-label">Email address</label>
+                    <div className="hs-input-wrap">
+                      <Mail size={15} className="hs-input-icon" />
+                      <input
+                        type="text"
+                        className="hs-input"
+                        placeholder="parent@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={isLoading}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="hs-field">
+                    <div className="hs-label-row">
+                      <label className="hs-label">Password</label>
+                      <button type="button" onClick={() => { setShowForgotPassword(true); setForgotStep(1); }} className="hs-forgot" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Forgot password?</button>
+                    </div>
+                    <div className="hs-input-wrap">
+                      <Lock size={15} className="hs-input-icon" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        className="hs-input"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isLoading}
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="hs-eye-btn"
+                        onClick={() => setShowPassword(!showPassword)}
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button type="submit" className="hs-submit-btn" disabled={isLoading}>
+                    {isLoading ? (
+                      <><div className="hs-spinner" /> Signing in…</>
+                    ) : (
+                      <>Sign in as Parent <ArrowRight size={15} /></>
+                    )}
+                  </button>
+                </form>
+
+                <div className="hs-register-row">
+                  Don't have an account? <a href="/register-hs">Register here</a>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* RIGHT */}
@@ -424,7 +552,7 @@ export default function ParentStudentLogin({ onLoginSuccess }: LoginProps) {
             </div>
 
             <p className="hs-right-quote">
-              ILMEE has completely transformed how I manage my child's daily schedule, assignments, and wellbeing check-ins.
+              LSA has completely transformed how I manage my child's daily schedule, assignments, and wellbeing check-ins.
             </p>
             <p className="hs-right-attr">
               <strong>Emma Johnson</strong> · Parent Educator

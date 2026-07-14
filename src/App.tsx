@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Home from './pages/Home';
@@ -17,11 +17,12 @@ import GuardLogin from './pages/auth/GuardLogin';
 import ParentRegistration from './pages/auth/ParentRegistration';
 
 import { useSelector, useDispatch } from 'react-redux';
-import { useGetMeQuery } from './store/apiSlice';
+import { useGetMeQuery, useLogoutMutation } from './store/apiSlice';
 import { logout, setCredentials } from './store/slices/authSlice';
 
 export default function App() {
   const dispatch = useDispatch();
+  const [logoutApi] = useLogoutMutation();
   
   // Authentication State from Redux
   const { isAuthenticated, user } = useSelector((state: any) => state.auth);
@@ -29,20 +30,22 @@ export default function App() {
   // Derived values
   const loggedInUser = user?.profile?.name || user?.email || '';
   const userRole = user?.role ? user.role.toLowerCase() : '';
-  const parentDetails = user?.role === 'PARENT' ? { ...user?.profile, email: user?.email } : null;
+  const parentDetails = useMemo(() => {
+    return user?.role === 'PARENT' ? { ...user?.profile, email: user?.email } : null;
+  }, [user]);
 
   // Helper to resolve page and subpage from window pathname
   const getPageFromPath = (path: string, role: string) => {
     const cleanedPath = path.replace(/^\//, '');
     if (!cleanedPath) {
-      if (role === 'safeguard') return { page: 'raised-tickets', subpage: '' };
+      if (role === 'safeguard') return { page: 'welfare-logs', subpage: '' };
       if (role === 'parent') return { page: 'home', subpage: '' };
       if (role === 'student') return { page: 'home', subpage: '' };
       if (role === 'regional_admin' || role === 'regionaladmin' || role === 'superadmin') return { page: 'home', subpage: '' };
       return { page: 'home', subpage: '' };
     }
 
-    if (cleanedPath === 'safeguard-dashboard') return { page: 'raised-tickets', subpage: '' };
+    if (cleanedPath === 'safeguard-dashboard') return { page: 'welfare-logs', subpage: '' };
     if (cleanedPath === 'parent-dashboard' || cleanedPath === 'student-dashboard' || cleanedPath === 'admin-dashboard') return { page: 'home', subpage: '' };
     
     if (cleanedPath.startsWith('safeguarding/')) {
@@ -63,7 +66,7 @@ export default function App() {
       if (role === 'regional_admin' || role === 'regionaladmin' || role === 'superadmin') return '/admin-dashboard';
       return '/';
     }
-    if (page === 'raised-tickets') {
+    if (page === 'raised-tickets' || page === 'welfare-logs') {
       return '/safeguard-dashboard';
     }
     if (page === 'safeguarding') {
@@ -94,17 +97,19 @@ export default function App() {
   const [selectedChildName, setSelectedChildName] = useState<string>('');
 
   // Validate session on load
-  const { data: userData, error: userError } = useGetMeQuery(undefined, {
-    skip: !isAuthenticated,
-  });
+  const { data: userData, error: userError } = useGetMeQuery(undefined);
 
   useEffect(() => {
     if (userData?.user) {
-      dispatch(setCredentials({ user: userData.user, token: localStorage.getItem('token') || '' }));
+      dispatch(setCredentials({ user: userData.user }));
     } else if (userError) {
-      dispatch(logout());
+      const status = 'status' in userError ? userError.status : null;
+      if (status === 401) {
+        dispatch(logout());
+        logoutApi();
+      }
     }
-  }, [userData, userError, dispatch]);
+  }, [userData, userError, dispatch, logoutApi]);
 
   // Synchronize state and URL on mount or when userRole changes
   useEffect(() => {
@@ -163,7 +168,7 @@ export default function App() {
       } else {
         setChildren([]);
       }
-    } else if (userRole === 'student') {
+    } else if (userRole === 'student' && selectedChildName !== loggedInUser) {
       setSelectedChildName(loggedInUser);
     }
   }, [userRole, parentDetails, loggedInUser, selectedChildName]);
@@ -187,6 +192,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    logoutApi();
     dispatch(logout());
     window.history.pushState({}, '', '/');
     setAuthRoute('/');
@@ -237,8 +243,13 @@ export default function App() {
     return <LandingPage onNavigate={setAuthRoute} />;
   }
 
+  const isAdmin = userRole === 'regional_admin' || userRole === 'regionaladmin' || userRole === 'superadmin';
+  const isParent = userRole === 'parent';
+  const isStudent = userRole === 'student';
+  const isSafeguard = userRole === 'safeguard';
+
   return (
-    <div className="app-container">
+    <div className={`app-container ${isAdmin ? 'role-admin' : ''} ${isParent ? 'role-parent' : ''} ${isStudent ? 'role-student' : ''} ${isSafeguard ? 'role-safeguard' : ''}`}>
       {/* Sidebar Navigation */}
       <Sidebar 
         currentPage={currentPage} 
@@ -258,6 +269,7 @@ export default function App() {
           loggedInUser={loggedInUser}
           childrenList={children}
           userRole={userRole}
+          onPageChange={handlePageChange}
         />
 
         <div className="app-body">
@@ -273,8 +285,8 @@ export default function App() {
             />
           )}
 
-          {(currentPage === 'raised-tickets' || currentPage === 'queries') && (
-            <SafeguardDashboard type={currentPage as 'raised-tickets' | 'queries'} />
+          {(currentPage === 'welfare-logs' || currentPage === 'raised-tickets' || currentPage === 'queries') && (
+            <SafeguardDashboard />
           )}
 
           {currentPage === 'safeguarding' && currentSubpage === 'overview' && (
@@ -285,7 +297,7 @@ export default function App() {
             <SafeguardingSubpages subpage={currentSubpage} />
           )}
 
-          {currentPage !== 'home' && currentPage !== 'safeguarding' && currentPage !== 'raised-tickets' && currentPage !== 'queries' && (
+          {currentPage !== 'home' && currentPage !== 'safeguarding' && currentPage !== 'welfare-logs' && currentPage !== 'raised-tickets' && currentPage !== 'queries' && (
             <OtherPages 
               pageId={currentPage} 
               childrenList={children}

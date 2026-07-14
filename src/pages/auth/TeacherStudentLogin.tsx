@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, ArrowRight, AlertTriangle, User, GraduationCap, Eye, EyeOff, BookOpen, ChevronLeft } from 'lucide-react';
-import { useLoginGeneralMutation } from '../../store/apiSlice';
+import { useLoginGeneralMutation, useForgotPasswordMutation, useResetPasswordMutation } from '../../store/apiSlice';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../../store/slices/authSlice';
 
@@ -14,9 +14,20 @@ export default function TeacherStudentLogin({ onLoginSuccess }: LoginProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
+  // Forgot password states
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [forgotStep, setForgotStep] = useState(1);
+  const [forgotMessage, setForgotMessage] = useState<string | null>(null);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+
   const dispatch = useDispatch();
   const [loginGeneral, { isLoading }] = useLoginGeneralMutation();
+  const [forgotPasswordMutation, { isLoading: isForgotLoading }] = useForgotPasswordMutation();
+  const [resetPasswordMutation, { isLoading: isResetLoading }] = useResetPasswordMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +35,7 @@ export default function TeacherStudentLogin({ onLoginSuccess }: LoginProps) {
     try {
       const response = await loginGeneral({ email, password }).unwrap();
       const user = response.user;
-      dispatch(setCredentials({ user: response.user, token: response.token }));
+      dispatch(setCredentials({ user: response.user }));
       onLoginSuccess(user.profile?.name || email.split('@')[0], user.role.toLowerCase());
     } catch (err: any) {
       setError(err?.data?.error || 'Invalid credentials or connection error.');
@@ -318,100 +329,216 @@ export default function TeacherStudentLogin({ onLoginSuccess }: LoginProps) {
 
         {/* LEFT */}
         <div className="tn-login-left">
-          <button className="tn-login-back" onClick={goBack}>
-            <ChevronLeft size={16} /> Back to home
-          </button>
-
-          <div className="tn-login-card">
-            <div className="tn-brand">
-              <img src="/ilmee_logo.png" alt="ILMEE Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'contain', marginBottom: '8px' }} />
-              <span className="tn-brand-name">ILMEE</span>
-              <span className="tn-brand-sub">Tuition Portal</span>
-            </div>
-
-            <h2 className="tn-login-heading">Welcome back</h2>
-            <p className="tn-login-sub">Select your role and sign in to continue</p>
-
-            {/* Tabs */}
-            <div className="tn-tabs">
-              <button
-                type="button"
-                className={`tn-tab${activeTab === 'teacher' ? ' active' : ''}`}
-                onClick={() => setActiveTab('teacher')}
-              >
-                <User size={15} /> Teacher
+          {showForgotPassword ? (
+            <>
+              <button className="tn-login-back" onClick={() => { setShowForgotPassword(false); setForgotStep(1); setForgotError(null); setForgotMessage(null); }}>
+                <ChevronLeft size={16} /> Back to Sign In
               </button>
-              <button
-                type="button"
-                className={`tn-tab${activeTab === 'student' ? ' active' : ''}`}
-                onClick={() => setActiveTab('student')}
-              >
-                <GraduationCap size={15} /> Student
+              
+              <div className="tn-login-card">
+                <div className="tn-brand">
+                  <img src="/ilmee_logo.png" alt="ILMEE Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'contain', marginBottom: '8px' }} />
+                  <span className="tn-brand-name">LSA</span>
+                  <span className="tn-brand-sub">Password Recovery</span>
+                </div>
+
+                <h2 className="tn-login-heading">Forgot Password</h2>
+                <p className="tn-login-sub">Reset your account password using your email address</p>
+
+                {forgotError && (
+                  <div className="tn-error" style={{ display: 'flex', gap: '8px', color: '#b91c1c', backgroundColor: '#fef2f2', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #fecaca', marginBottom: '16px' }}>
+                    <AlertTriangle size={15} />
+                    <span>{forgotError}</span>
+                  </div>
+                )}
+
+                {forgotMessage && (
+                  <div style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
+                    ✅ {forgotMessage}
+                  </div>
+                )}
+
+                {forgotStep === 1 ? (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setForgotError(null);
+                    setForgotMessage(null);
+                    try {
+                      await forgotPasswordMutation({ email: forgotEmail }).unwrap();
+                      setForgotStep(2);
+                      setForgotMessage('Verification code sent to your email.');
+                    } catch (err: any) {
+                      setForgotError(err?.data?.error || 'Failed to send verification code.');
+                    }
+                  }} className="tn-form">
+                    <div className="tn-field">
+                      <label className="tn-label">Email address</label>
+                      <div className="tn-input-wrap">
+                        <Mail size={15} className="tn-input-icon" />
+                        <input
+                          type="email"
+                          className="tn-input"
+                          placeholder="user@example.com"
+                          value={forgotEmail}
+                          onChange={(e) => setForgotEmail(e.target.value)}
+                          disabled={isForgotLoading}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <button type="submit" className="tn-submit-btn" disabled={isForgotLoading}>
+                      {isForgotLoading ? 'Sending...' : 'Send Verification Code'}
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setForgotError(null);
+                    setForgotMessage(null);
+                    try {
+                      await resetPasswordMutation({ email: forgotEmail, otp, newPassword }).unwrap();
+                      setForgotMessage('Password reset successful! Redirecting to login...');
+                      setTimeout(() => {
+                        setShowForgotPassword(false);
+                        setForgotStep(1);
+                        setForgotEmail('');
+                        setOtp('');
+                        setNewPassword('');
+                        setForgotMessage(null);
+                      }, 2500);
+                    } catch (err: any) {
+                      setForgotError(err?.data?.error || 'Failed to reset password.');
+                    }
+                  }} className="tn-form">
+                    <div className="tn-field">
+                      <label className="tn-label">Verification Code (OTP)</label>
+                      <input
+                        type="text"
+                        className="tn-input"
+                        placeholder="Enter 6-digit code"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        disabled={isResetLoading}
+                        required
+                      />
+                    </div>
+                    <div className="hs-field" style={{ marginTop: '16px' }}>
+                      <label className="tn-label" style={{ display: 'block', marginBottom: '6px' }}>New Password</label>
+                      <input
+                        type="password"
+                        className="tn-input"
+                        placeholder="••••••••"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        disabled={isResetLoading}
+                        required
+                      />
+                    </div>
+                    <button type="submit" className="tn-submit-btn" style={{ marginTop: '24px' }} disabled={isResetLoading}>
+                      {isResetLoading ? 'Resetting...' : 'Reset Password'}
+                    </button>
+                  </form>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <button className="tn-login-back" onClick={goBack}>
+                <ChevronLeft size={16} /> Back to home
               </button>
-            </div>
 
-            {error && (
-              <div className="tn-error">
-                <AlertTriangle size={15} />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="tn-form">
-              <div className="tn-field">
-                <label className="tn-label">
-                  {activeTab === 'teacher' ? 'Email address' : 'Username'}
-                </label>
-                <div className="tn-input-wrap">
-                  <Mail size={15} className="tn-input-icon" />
-                  <input
-                    type="text"
-                    className="tn-input"
-                    placeholder={activeTab === 'teacher' ? 'teacher@example.com' : 'student-username'}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isLoading}
-                    required
-                  />
+              <div className="tn-login-card">
+                <div className="tn-brand">
+                  <img src="/ilmee_logo.png" alt="ILMEE Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'contain', marginBottom: '8px' }} />
+                  <span className="tn-brand-name">LSA</span>
+                  <span className="tn-brand-sub">Tuition Portal</span>
                 </div>
-              </div>
 
-              <div className="tn-field">
-                <div className="tn-label-row">
-                  <label className="tn-label">Password</label>
-                  <a href="#forgot" className="tn-forgot">Forgot password?</a>
-                </div>
-                <div className="tn-input-wrap">
-                  <Lock size={15} className="tn-input-icon" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    className="tn-input"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
-                    required
-                  />
+                <h2 className="tn-login-heading">Welcome back</h2>
+                <p className="tn-login-sub">Select your role and sign in to continue</p>
+
+                {/* Tabs */}
+                <div className="tn-tabs">
                   <button
                     type="button"
-                    className="tn-eye-btn"
-                    onClick={() => setShowPassword(!showPassword)}
-                    tabIndex={-1}
+                    className={`tn-tab${activeTab === 'teacher' ? ' active' : ''}`}
+                    onClick={() => setActiveTab('teacher')}
                   >
-                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    <User size={15} /> Teacher
+                  </button>
+                  <button
+                    type="button"
+                    className={`tn-tab${activeTab === 'student' ? ' active' : ''}`}
+                    onClick={() => setActiveTab('student')}
+                  >
+                    <GraduationCap size={15} /> Student
                   </button>
                 </div>
-              </div>
 
-              <button type="submit" className="tn-submit-btn" disabled={isLoading}>
-                {isLoading ? (
-                  <><div className="tn-spinner" /> Signing in…</>
-                ) : (
-                  <>Sign in as {activeTab === 'teacher' ? 'Teacher' : 'Student'} <ArrowRight size={15} /></>
+                {error && (
+                  <div className="tn-error">
+                    <AlertTriangle size={15} />
+                    <span>{error}</span>
+                  </div>
                 )}
-              </button>
-            </form>
-          </div>
+
+                <form onSubmit={handleSubmit} className="tn-form">
+                  <div className="tn-field">
+                    <label className="tn-label">
+                      {activeTab === 'teacher' ? 'Email address' : 'Username'}
+                    </label>
+                    <div className="tn-input-wrap">
+                      <Mail size={15} className="tn-input-icon" />
+                      <input
+                        type="text"
+                        className="tn-input"
+                        placeholder={activeTab === 'teacher' ? 'teacher@example.com' : 'student-username'}
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={isLoading}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="tn-field">
+                    <div className="tn-label-row">
+                      <label className="tn-label">Password</label>
+                      <button type="button" onClick={() => { setShowForgotPassword(true); setForgotStep(1); }} className="tn-forgot" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Forgot password?</button>
+                    </div>
+                    <div className="tn-input-wrap">
+                      <Lock size={15} className="tn-input-icon" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        className="tn-input"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isLoading}
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="tn-eye-btn"
+                        onClick={() => setShowPassword(!showPassword)}
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button type="submit" className="tn-submit-btn" disabled={isLoading}>
+                    {isLoading ? (
+                      <><div className="tn-spinner" /> Signing in…</>
+                    ) : (
+                      <>Sign in as {activeTab === 'teacher' ? 'Teacher' : 'Student'} <ArrowRight size={15} /></>
+                    )}
+                  </button>
+                </form>
+              </div>
+            </>
+          )}
         </div>
 
         {/* RIGHT */}
@@ -432,7 +559,7 @@ export default function TeacherStudentLogin({ onLoginSuccess }: LoginProps) {
             </div>
 
             <p className="tn-right-quote">
-              The ILMEE Tuition platform makes tracking student progress and setting assignments effortless.
+              The LSA Tuition platform makes tracking student progress and setting assignments effortless.
             </p>
             <p className="tn-right-attr">
               <strong>Sarah Jenkins</strong> · Mathematics Tutor

@@ -2838,4 +2838,92 @@ body {
   }
 }
 
+/* =====================================================
+   REGIONAL ADMIN, PARENT, STUDENT & SAFEGUARD THEME: Sage Green & Warm Sand
+   ===================================================== */
+.role-admin,
+.role-parent,
+.role-student,
+.role-safeguard,
+.app-container.role-admin,
+.app-container.role-parent,
+.app-container.role-student,
+.app-container.role-safeguard {
+  --primary-purple: #3d5248;
+  --primary-purple-hover: #2e3d36;
+  --primary-purple-light: #e2ede8;
+  --bg-portal: #f2ede4;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --border-light: #e6e0d6;
+  --text-main: #1a1a1a;
+  --text-secondary: #5c5c5c;
+  --text-muted: #9a9a9a;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-title: 'Outfit', var(--font-sans);
+}
+
+.role-admin body,
+.role-admin,
+.role-parent body,
+.role-parent,
+.role-student body,
+.role-student,
+.role-safeguard body,
+.role-safeguard {
+  font-family: var(--font-sans) !important;
+  background-color: var(--bg-portal) !important;
+  color: var(--text-main);
+}
+
+.role-admin h1,
+.role-admin h2,
+.role-admin h3,
+.role-admin h4,
+.role-admin .panel-title-text,
+.role-admin .title-text,
+.role-parent h1,
+.role-parent h2,
+.role-parent h3,
+.role-parent h4,
+.role-parent .panel-title-text,
+.role-parent .title-text,
+.role-student h1,
+.role-student h2,
+.role-student h3,
+.role-student h4,
+.role-student .panel-title-text,
+.role-student .title-text,
+.role-safeguard h1,
+.role-safeguard h2,
+.role-safeguard h3,
+.role-safeguard h4,
+.role-safeguard .panel-title-text,
+.role-safeguard .title-text {
+  font-family: var(--font-title) !important;
+  color: var(--text-main);
+}
+
+.role-admin .sidebar-link.active,
+.role-parent .sidebar-link.active,
+.role-student .sidebar-link.active,
+.role-safeguard .sidebar-link.active {
+  background-color: var(--primary-purple-light) !important;
+  color: var(--primary-purple) !important;
+}
+
+.role-admin .login-btn,
+.role-parent .login-btn,
+.role-student .login-btn,
+.role-safeguard .login-btn {
+  background-color: var(--primary-purple) !important;
+}
+
+.role-admin .login-btn:hover,
+.role-parent .login-btn:hover,
+.role-student .login-btn:hover,
+.role-safeguard .login-btn:hover {
+  background-color: var(--primary-purple-hover) !important;
+}
+
 

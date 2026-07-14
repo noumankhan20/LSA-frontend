@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Mail, Lock, ArrowRight, AlertTriangle, Eye, EyeOff, ChevronLeft } from 'lucide-react';
-import { useLoginGeneralMutation } from '../../store/apiSlice';
+import { useLoginGeneralMutation, useForgotPasswordMutation, useResetPasswordMutation } from '../../store/apiSlice';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../../store/slices/authSlice';
 
@@ -13,9 +13,21 @@ export default function SuperAdminLogin({ onLoginSuccess }: LoginProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Forgot password states
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [forgotStep, setForgotStep] = useState(1);
+  const [forgotMessage, setForgotMessage] = useState<string | null>(null);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+
   const dispatch = useDispatch();
 
   const [loginGeneral, { isLoading }] = useLoginGeneralMutation();
+  const [forgotPasswordMutation, { isLoading: isForgotLoading }] = useForgotPasswordMutation();
+  const [resetPasswordMutation, { isLoading: isResetLoading }] = useResetPasswordMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +35,7 @@ export default function SuperAdminLogin({ onLoginSuccess }: LoginProps) {
     try {
       const response = await loginGeneral({ email, password }).unwrap();
       const user = response.user;
-      dispatch(setCredentials({ user: response.user, token: response.token }));
+      dispatch(setCredentials({ user: response.user }));
       onLoginSuccess(user.profile?.name || email.split('@')[0], user.role.toLowerCase());
     } catch (err: any) {
       setError(err?.data?.error || 'Invalid admin credentials or connection error.');
@@ -212,80 +224,197 @@ export default function SuperAdminLogin({ onLoginSuccess }: LoginProps) {
 
         {/* LEFT */}
         <div className="sa-login-left">
-         
-
-          <div className="sa-card">
-            <div className="sa-brand">
-              <img src="/ilmee_logo.png" alt="ILMEE Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'contain', marginBottom: '8px' }} />
-              <span className="sa-brand-name">ILMEE</span>
-              <span className="sa-brand-sub">Super Admin Portal</span>
-            </div>
-
-            <h2 className="sa-heading">Administrator Access</h2>
-            <p className="sa-sub">Restricted access. Authorised personnel only.</p>
-
-            <div className="sa-warning">
-              <ShieldCheck size={13} />
-              All login attempts are logged and monitored.
-            </div>
-
-            {error && (
-              <div className="sa-error">
-                <AlertTriangle size={15} />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="sa-form">
-              <div className="sa-field">
-                <label className="sa-label">Admin ID / Email</label>
-                <div className="sa-input-wrap">
-                  <Mail size={15} className="sa-input-icon" />
-                  <input
-                    type="text"
-                    className="sa-input"
-                    placeholder="admin@ilmee.co.uk"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isLoading}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="sa-field">
-                <label className="sa-label">Password</label>
-                <div className="sa-input-wrap">
-                  <Lock size={15} className="sa-input-icon" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    className="sa-input"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="sa-eye-btn"
-                    onClick={() => setShowPassword(!showPassword)}
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-              </div>
-
-              <button type="submit" className="sa-submit-btn" disabled={isLoading}>
-                {isLoading ? (
-                  <><div className="sa-spinner" /> Authenticating…</>
-                ) : (
-                  <>Secure Login <ArrowRight size={15} /></>
-                )}
+          {showForgotPassword ? (
+            <>
+              <button className="hs-login-back" style={{ position: 'absolute', top: '1.5rem', left: '1.5rem', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#5a6557', cursor: 'pointer', background: 'none', border: 'none', padding: '6px 10px', borderRadius: '6px' }} onClick={() => { setShowForgotPassword(false); setForgotStep(1); setForgotError(null); setForgotMessage(null); }}>
+                <ChevronLeft size={16} /> Back to Sign In
               </button>
-            </form>
-          </div>
+              
+              <div className="sa-card">
+                <div className="sa-brand">
+                  <img src="/ilmee_logo.png" alt="ILMEE Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'contain', marginBottom: '8px' }} />
+                  <span className="sa-brand-name">LSA</span>
+                  <span className="sa-brand-sub">Password Recovery</span>
+                </div>
+
+                <h2 className="sa-heading">Forgot Password</h2>
+                <p className="sa-sub">Reset your administrator password using your email address</p>
+
+                {forgotError && (
+                  <div className="sa-error">
+                    <AlertTriangle size={15} />
+                    <span>{forgotError}</span>
+                  </div>
+                )}
+
+                {forgotMessage && (
+                  <div style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
+                    ✅ {forgotMessage}
+                  </div>
+                )}
+
+                {forgotStep === 1 ? (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setForgotError(null);
+                    setForgotMessage(null);
+                    try {
+                      await forgotPasswordMutation({ email: forgotEmail }).unwrap();
+                      setForgotStep(2);
+                      setForgotMessage('Verification code sent to your email.');
+                    } catch (err: any) {
+                      setForgotError(err?.data?.error || 'Failed to send verification code.');
+                    }
+                  }} className="sa-form">
+                    <div className="sa-field">
+                      <label className="sa-label">Email address</label>
+                      <div className="sa-input-wrap">
+                        <Mail size={15} className="sa-input-icon" />
+                        <input
+                          type="email"
+                          className="sa-input"
+                          placeholder="admin@example.com"
+                          value={forgotEmail}
+                          onChange={(e) => setForgotEmail(e.target.value)}
+                          disabled={isForgotLoading}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <button type="submit" className="sa-submit-btn" disabled={isForgotLoading}>
+                      {isForgotLoading ? 'Sending...' : 'Send Verification Code'}
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setForgotError(null);
+                    setForgotMessage(null);
+                    try {
+                      await resetPasswordMutation({ email: forgotEmail, otp, newPassword }).unwrap();
+                      setForgotMessage('Password reset successful! Redirecting to login...');
+                      setTimeout(() => {
+                        setShowForgotPassword(false);
+                        setForgotStep(1);
+                        setForgotEmail('');
+                        setOtp('');
+                        setNewPassword('');
+                        setForgotMessage(null);
+                      }, 2500);
+                    } catch (err: any) {
+                      setForgotError(err?.data?.error || 'Failed to reset password.');
+                    }
+                  }} className="sa-form">
+                    <div className="sa-field">
+                      <label className="sa-label">Verification Code (OTP)</label>
+                      <input
+                        type="text"
+                        className="sa-input"
+                        placeholder="Enter 6-digit code"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        disabled={isResetLoading}
+                        required
+                      />
+                    </div>
+                    <div className="sa-field" style={{ marginTop: '16px' }}>
+                      <label className="sa-label" style={{ display: 'block', marginBottom: '6px' }}>New Password</label>
+                      <input
+                        type="password"
+                        className="sa-input"
+                        placeholder="••••••••"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        disabled={isResetLoading}
+                        required
+                      />
+                    </div>
+                    <button type="submit" className="sa-submit-btn" style={{ marginTop: '24px' }} disabled={isResetLoading}>
+                      {isResetLoading ? 'Resetting...' : 'Reset Password'}
+                    </button>
+                  </form>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="sa-card">
+                <div className="sa-brand">
+                  <img src="/ilmee_logo.png" alt="ILMEE Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'contain', marginBottom: '8px' }} />
+                  <span className="sa-brand-name">LSA</span>
+                  <span className="sa-brand-sub">Super Admin Portal</span>
+                </div>
+
+                <h2 className="sa-heading">Administrator Access</h2>
+                <p className="sa-sub">Restricted access. Authorised personnel only.</p>
+
+                <div className="sa-warning">
+                  <ShieldCheck size={13} />
+                  All login attempts are logged and monitored.
+                </div>
+
+                {error && (
+                  <div className="sa-error">
+                    <AlertTriangle size={15} />
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="sa-form">
+                  <div className="sa-field">
+                    <label className="sa-label">Admin ID / Email</label>
+                    <div className="sa-input-wrap">
+                      <Mail size={15} className="sa-input-icon" />
+                      <input
+                        type="text"
+                        className="sa-input"
+                        placeholder="admin@lsa.co.uk"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={isLoading}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="sa-field">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <label className="sa-label" style={{ margin: 0 }}>Password</label>
+                      <button type="button" onClick={() => { setShowForgotPassword(true); setForgotStep(1); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '11px', color: '#583fc0' }}>Forgot password?</button>
+                    </div>
+                    <div className="sa-input-wrap">
+                      <Lock size={15} className="sa-input-icon" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        className="sa-input"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isLoading}
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="sa-eye-btn"
+                        onClick={() => setShowPassword(!showPassword)}
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button type="submit" className="sa-submit-btn" disabled={isLoading}>
+                    {isLoading ? (
+                      <><div className="sa-spinner" /> Authenticating…</>
+                    ) : (
+                      <>Secure Login <ArrowRight size={15} /></>
+                    )}
+                  </button>
+                </form>
+              </div>
+            </>
+          )}
         </div>
 
         {/* RIGHT */}
@@ -301,7 +430,7 @@ export default function SuperAdminLogin({ onLoginSuccess }: LoginProps) {
 
             <h3 className="sa-right-title">Platform Administration</h3>
             <p className="sa-right-desc">
-              Full platform control for authorised ILMEE administrators.
+              Full platform control for authorised LSA administrators.
               Manage users, portals, and system-wide configurations.
             </p>
 

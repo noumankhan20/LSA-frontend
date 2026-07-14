@@ -1,11 +1,22 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   FolderOpen,
   Volume2,
   Play,
-  Plus
+  Plus,
+  Eye,
+  EyeOff,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Lock,
+  Shield,
+  ChevronDown,
+  ChevronRight,
+  Pencil
 } from 'lucide-react';
-import { useRegisterChildMutation, useRegisterSafeguardMutation, useUpdateParentProfileMutation, useUpdateSafeguardProfileMutation, useGetSafeguardsQuery, useGetRegionalParentsQuery } from '../store/apiSlice';
+import { useRegisterChildMutation, useRegisterSafeguardMutation, useUpdateParentProfileMutation, useUpdateSafeguardProfileMutation, useUpdateProfileMutation, useChangePasswordMutation, useGetSafeguardsQuery, useGetRegionalParentsQuery } from '../store/apiSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import { setCredentials } from '../store/slices/authSlice';
 
@@ -65,11 +76,27 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
   const [showSgModal, setShowSgModal] = useState(false);
 
   // Regional Admin states (unconditional top-level hooks)
+  const [updateProfile, { isLoading: isUpdatingAdmin }] = useUpdateProfileMutation();
   const adminProfile = auth.user?.profile || {};
   const [adminName, setAdminName] = useState(adminProfile.name || '');
   const [adminPhone, setAdminPhone] = useState(adminProfile.phone || '');
   const [adminRegion] = useState(adminProfile.region || '');
   const [adminUpdateSuccess, setAdminUpdateSuccess] = useState<string | null>(null);
+  const [adminUpdateError, setAdminUpdateError] = useState<string | null>(null);
+
+  // Change Password states (shared across roles)
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [selectedStudentForModal, setSelectedStudentForModal] = useState<any>(null);
+  const [expandedParentId, setExpandedParentId] = useState<string | null>(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
 
   // Unconditional hook call for regional parents list
   const { data: parentsData, isLoading: isParentsLoading } = useGetRegionalParentsQuery(undefined, {
@@ -85,6 +112,41 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
     if (auth.user?.profile) {
       setAdminName(auth.user.profile.name || '');
       setAdminPhone(auth.user.profile.phone || '');
+    }
+  }, [auth.user]);
+
+  // Safeguard profile update states (unconditional)
+  const [updateSafeguardProfile, { isLoading: isUpdatingSg }] = useUpdateSafeguardProfileMutation();
+  const [sgProfileName, setSgProfileName] = useState('');
+  const [sgProfilePhone, setSgProfilePhone] = useState('');
+  const [sgProfileRegion, setSgProfileRegion] = useState('');
+  const [sgProfileCountry, setSgProfileCountry] = useState('');
+  const [sgUpdateError, setSgUpdateError] = useState<string | null>(null);
+  const [sgUpdateSuccess, setSgUpdateSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (auth.user?.role === 'SAFEGUARD' && auth.user.profile) {
+      setSgProfileName(auth.user.profile.name || '');
+      setSgProfilePhone(auth.user.profile.phone || '');
+      setSgProfileRegion(auth.user.profile.region || '');
+      setSgProfileCountry(auth.user.profile.country || '');
+    }
+  }, [auth.user]);
+
+  // Student profile update states (unconditional)
+  const [updateStudentProfile, { isLoading: isUpdatingStudent }] = useUpdateProfileMutation();
+  const [studentNameState, setStudentNameState] = useState('');
+  const [studentDobState, setStudentDobState] = useState('');
+  const [studentUpdateSuccess, setStudentUpdateSuccess] = useState<string | null>(null);
+  const [studentUpdateError, setStudentUpdateError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (auth.user?.role === 'STUDENT' && auth.user.profile) {
+      setStudentNameState(auth.user.profile.name || '');
+      const dob = auth.user.profile.dateOfBirth
+        ? new Date(auth.user.profile.dateOfBirth).toISOString().split('T')[0]
+        : '';
+      setStudentDobState(dob);
     }
   }, [auth.user]);
 
@@ -739,15 +801,204 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
 
   // 11. Settings
   if (pageId === 'settings') {
+    const handleChangePasswordSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setPasswordError(null);
+      setPasswordSuccess(null);
+
+      if (!oldPassword || !newPassword || !confirmNewPassword) {
+        setPasswordError('All fields are required.');
+        return;
+      }
+
+      if (newPassword !== confirmNewPassword) {
+        setPasswordError('New passwords do not match.');
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        setPasswordError('New password must be at least 6 characters.');
+        return;
+      }
+
+      try {
+        await changePassword({ oldPassword, newPassword }).unwrap();
+        setPasswordSuccess('Password updated successfully!');
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmNewPassword('');
+      } catch (err: any) {
+        setPasswordError(err?.data?.error || 'Failed to change password. Please try again.');
+      }
+    };
+
+    const renderPasswordForm = () => (
+      <div className="card-widget" style={{ maxWidth: '800px', marginTop: '32px' }}>
+        <h3 className="panel-title-text" style={{ marginBottom: '16px' }}>Change Password</h3>
+
+        {passwordError && (
+          <div style={{ color: '#b91c1c', backgroundColor: '#fef2f2', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #fecaca', marginBottom: '16px' }}>
+            ❌ {passwordError}
+          </div>
+        )}
+
+        {passwordSuccess && (
+          <div style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
+            ✅ {passwordSuccess}
+          </div>
+        )}
+
+        <form className="form-element" onSubmit={handleChangePasswordSubmit} style={{ maxWidth: '800px', marginTop: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+            <div className="form-group">
+              <label className="input-label" style={{ fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'flex-end', minHeight: '34px', marginBottom: '6px', fontSize: '0.85rem' }}>Current Password</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showOldPassword ? 'text' : 'password'}
+                  className="form-input"
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  style={{ 
+                    paddingLeft: '12px', 
+                    paddingRight: '40px', 
+                    width: '100%', 
+                    height: '42px', 
+                    borderRadius: '8px', 
+                    border: '1.5px solid var(--border-light)', 
+                    backgroundColor: '#ffffff',
+                    fontSize: '0.88rem', 
+                    outline: 'none',
+                    color: 'var(--text-main)'
+                  }}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowOldPassword(!showOldPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: 0
+                  }}
+                >
+                  {showOldPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="input-label" style={{ fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'flex-end', minHeight: '34px', marginBottom: '6px', fontSize: '0.85rem' }}>New Password</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showNewPassword ? 'text' : 'password'}
+                  className="form-input"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  style={{ 
+                    paddingLeft: '12px', 
+                    paddingRight: '40px', 
+                    width: '100%', 
+                    height: '42px', 
+                    borderRadius: '8px', 
+                    border: '1.5px solid var(--border-light)', 
+                    backgroundColor: '#ffffff',
+                    fontSize: '0.88rem', 
+                    outline: 'none',
+                    color: 'var(--text-main)'
+                  }}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: 0
+                  }}
+                >
+                  {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="input-label" style={{ fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'flex-end', minHeight: '34px', marginBottom: '6px', fontSize: '0.85rem' }}>Confirm New Password</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  className="form-input"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  style={{ 
+                    paddingLeft: '12px', 
+                    paddingRight: '40px', 
+                    width: '100%', 
+                    height: '42px', 
+                    borderRadius: '8px', 
+                    border: '1.5px solid var(--border-light)', 
+                    backgroundColor: '#ffffff',
+                    fontSize: '0.88rem', 
+                    outline: 'none',
+                    color: 'var(--text-main)'
+                  }}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: 0
+                  }}
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="login-btn"
+            style={{ width: '160px', fontSize: '0.85rem', padding: '10px', border: 'none', marginTop: '24px' }}
+            disabled={isChangingPassword}
+          >
+            {isChangingPassword ? 'Updating...' : 'Update Password'}
+          </button>
+        </form>
+      </div>
+    );
+
     if (auth.user?.role === 'SAFEGUARD') {
-      const safeguardProfile = auth.user.profile || {};
-      const [sgProfileName, setSgProfileName] = useState(safeguardProfile.name || '');
-      const [sgProfilePhone, setSgProfilePhone] = useState(safeguardProfile.phone || '');
-      const [sgProfileRegion, setSgProfileRegion] = useState(safeguardProfile.region || '');
-      const [sgProfileCountry, setSgProfileCountry] = useState(safeguardProfile.country || '');
-      const [sgUpdateError, setSgUpdateError] = useState<string | null>(null);
-      const [sgUpdateSuccess, setSgUpdateSuccess] = useState<string | null>(null);
-      const [updateSafeguardProfile, { isLoading: isUpdatingSg }] = useUpdateSafeguardProfileMutation();
 
       const handleSgProfileSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -774,242 +1025,423 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
                   ...auth.user,
                   profile: response.safeguard,
                 },
-                token: auth.token || '',
               })
             );
           }
           setSgUpdateSuccess('Safeguard profile updated successfully!');
+          setIsEditingProfile(false);
         } catch (err: any) {
           setSgUpdateError(err?.data?.error || 'Failed to update profile. Please try again.');
         }
       };
 
       return (
-        <div className="card-widget" style={{ maxWidth: '640px' }}>
-          <h3 className="panel-title-text" style={{ marginBottom: '16px' }}>Safeguard DSL Profile Details</h3>
-
-          {sgUpdateError && (
-            <div style={{ color: '#b91c1c', backgroundColor: '#fef2f2', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #fecaca', marginBottom: '16px' }}>
-              ⚠️ {sgUpdateError}
-            </div>
-          )}
-
-          {sgUpdateSuccess && (
-            <div style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
-              ✅ {sgUpdateSuccess}
-            </div>
-          )}
-
-          <form className="form-element" onSubmit={handleSgProfileSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div className="form-group">
-                <label className="input-label">DSL Officer Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={sgProfileName}
-                  onChange={(e) => setSgProfileName(e.target.value)}
-                  style={{ paddingLeft: '12px' }}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="input-label">Login Email (Read-Only)</label>
-                <input
-                  type="email"
-                  className="form-input"
-                  value={auth.user?.email || ''}
-                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
-                  disabled
-                />
-              </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          <div className="card-widget" style={{ maxWidth: '800px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 className="panel-title-text" style={{ margin: 0 }}>Safeguard DSL Profile Details</h3>
+              <button
+                type="button"
+                onClick={() => setIsEditingProfile(!isEditingProfile)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: isEditingProfile ? 'var(--primary-purple)' : 'none',
+                  border: isEditingProfile ? 'none' : '1px solid var(--border-light)',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  color: isEditingProfile ? '#ffffff' : 'var(--text-secondary)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Pencil size={14} /> {isEditingProfile ? 'Cancel Edit' : 'Edit Profile'}
+              </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
-              <div className="form-group">
-                <label className="input-label">Phone Number</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={sgProfilePhone}
-                  onChange={(e) => setSgProfilePhone(e.target.value)}
-                  style={{ paddingLeft: '12px' }}
-                />
+            {sgUpdateError && (
+              <div style={{ color: '#b91c1c', backgroundColor: '#fef2f2', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #fecaca', marginBottom: '16px' }}>
+                ⚠️ {sgUpdateError}
               </div>
-              <div className="form-group">
-                <label className="input-label">Education Region</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={sgProfileRegion}
-                  onChange={(e) => setSgProfileRegion(e.target.value)}
-                  style={{ paddingLeft: '12px' }}
-                  required
-                />
-              </div>
-            </div>
+            )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
-              <div className="form-group">
-                <label className="input-label">Country Jurisdiction</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={sgProfileCountry}
-                  onChange={(e) => setSgProfileCountry(e.target.value)}
-                  style={{ paddingLeft: '12px' }}
-                  required
-                />
+            {sgUpdateSuccess && (
+              <div style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
+                ✅ {sgUpdateSuccess}
               </div>
-            </div>
+            )}
 
-            <button
-              type="submit"
-              className="login-btn"
-              style={{ width: '140px', fontSize: '0.85rem', padding: '10px', border: 'none', marginTop: '24px' }}
-              disabled={isUpdatingSg}
-            >
-              {isUpdatingSg ? 'Saving...' : 'Save Changes'}
-            </button>
-          </form>
+            <form className="form-element" onSubmit={handleSgProfileSubmit}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-group">
+                  <label className="input-label">DSL Officer Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={sgProfileName}
+                    onChange={(e) => setSgProfileName(e.target.value)}
+                    style={{ paddingLeft: '12px', backgroundColor: isEditingProfile ? '#ffffff' : '#f8fafc', color: isEditingProfile ? 'var(--text-main)' : 'var(--text-secondary)', border: isEditingProfile ? '1.5px solid var(--primary-purple)' : '1.5px solid var(--border-light)' }}
+                    required
+                    disabled={!isEditingProfile}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="input-label">Login Email (Read-Only)</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    value={auth.user?.email || ''}
+                    style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
+                    disabled
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+                <div className="form-group">
+                  <label className="input-label">Phone Number</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={sgProfilePhone}
+                    onChange={(e) => setSgProfilePhone(e.target.value)}
+                    style={{ paddingLeft: '12px', backgroundColor: isEditingProfile ? '#ffffff' : '#f8fafc', color: isEditingProfile ? 'var(--text-main)' : 'var(--text-secondary)', border: isEditingProfile ? '1.5px solid var(--primary-purple)' : '1.5px solid var(--border-light)' }}
+                    disabled={!isEditingProfile}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="input-label">Education Region</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={sgProfileRegion}
+                    onChange={(e) => setSgProfileRegion(e.target.value)}
+                    style={{ paddingLeft: '12px', backgroundColor: isEditingProfile ? '#ffffff' : '#f8fafc', color: isEditingProfile ? 'var(--text-main)' : 'var(--text-secondary)', border: isEditingProfile ? '1.5px solid var(--primary-purple)' : '1.5px solid var(--border-light)' }}
+                    required
+                    disabled={!isEditingProfile}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+                <div className="form-group">
+                  <label className="input-label">Country Jurisdiction</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={sgProfileCountry}
+                    onChange={(e) => setSgProfileCountry(e.target.value)}
+                    style={{ paddingLeft: '12px', backgroundColor: isEditingProfile ? '#ffffff' : '#f8fafc', color: isEditingProfile ? 'var(--text-main)' : 'var(--text-secondary)', border: isEditingProfile ? '1.5px solid var(--primary-purple)' : '1.5px solid var(--border-light)' }}
+                    required
+                    disabled={!isEditingProfile}
+                  />
+                </div>
+              </div>
+
+              {isEditingProfile && (
+                <button
+                  type="submit"
+                  className="login-btn"
+                  style={{ width: '140px', fontSize: '0.85rem', padding: '10px', border: 'none', marginTop: '24px' }}
+                  disabled={isUpdatingSg}
+                >
+                  {isUpdatingSg ? 'Saving...' : 'Save Changes'}
+                </button>
+              )}
+            </form>
+          </div>
+          {renderPasswordForm()}
         </div>
       );
     }
 
     if (auth.user?.role === 'REGIONAL_ADMIN' || auth.user?.role === 'SUPER_ADMIN') {
-      const handleAdminProfileSubmit = (e: React.FormEvent) => {
+      const handleAdminProfileSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setAdminUpdateSuccess('Administrator profile updated successfully! (Simulation)');
+        setAdminUpdateSuccess(null);
+        setAdminUpdateError(null);
+        try {
+          const response = await updateProfile({
+            name: adminName,
+            phone: adminPhone,
+          }).unwrap();
+
+          if (auth.user) {
+            dispatch(
+              setCredentials({
+                user: {
+                  ...auth.user,
+                  profile: response.profile,
+                },
+              })
+            );
+          }
+          setAdminUpdateSuccess('Administrator profile updated successfully!');
+          setIsEditingProfile(false);
+        } catch (err: any) {
+          setAdminUpdateError(err?.data?.error || 'Failed to update profile. Please try again.');
+        }
       };
 
       return (
-        <div className="card-widget" style={{ maxWidth: '640px' }}>
-          <h3 className="panel-title-text" style={{ marginBottom: '16px' }}>Administrator Account Details</h3>
-
-          {adminUpdateSuccess && (
-            <div style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
-              ✅ {adminUpdateSuccess}
-            </div>
-          )}
-
-          <form className="form-element" onSubmit={handleAdminProfileSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div className="form-group">
-                <label className="input-label">Admin Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={adminName}
-                  onChange={(e) => setAdminName(e.target.value)}
-                  style={{ paddingLeft: '12px' }}
-                  required
-                />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          <div className="card-widget" style={{ maxWidth: '800px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <div style={{ borderLeft: '4px solid var(--primary-purple)', paddingLeft: '12px' }}>
+                <h3 className="panel-title-text" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-main)' }}>Administrator Account Details</h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Manage your regional administrator profile details.</p>
               </div>
-              <div className="form-group">
-                <label className="input-label">Login Email (Read-Only)</label>
-                <input
-                  type="email"
-                  className="form-input"
-                  value={auth.user?.email || ''}
-                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
-                  disabled
-                />
-              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditingProfile(!isEditingProfile)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: isEditingProfile ? 'var(--primary-purple)' : 'none',
+                  border: isEditingProfile ? 'none' : '1px solid var(--border-light)',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  color: isEditingProfile ? '#ffffff' : 'var(--text-secondary)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Pencil size={14} /> {isEditingProfile ? 'Cancel Edit' : 'Edit Profile'}
+              </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
-              <div className="form-group">
-                <label className="input-label">Phone Number</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={adminPhone}
-                  onChange={(e) => setAdminPhone(e.target.value)}
-                  style={{ paddingLeft: '12px' }}
-                />
+            {adminUpdateSuccess && (
+              <div style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
+                ✅ {adminUpdateSuccess}
               </div>
-              {auth.user?.role === 'REGIONAL_ADMIN' && (
+            )}
+
+            {adminUpdateError && (
+              <div style={{ color: '#b91c1c', backgroundColor: '#fef2f2', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #fecaca', marginBottom: '16px' }}>
+                ❌ {adminUpdateError}
+              </div>
+            )}
+
+            <form className="form-element" onSubmit={handleAdminProfileSubmit}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <div className="form-group">
-                  <label className="input-label">Education Region Jurisdiction</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={adminRegion}
-                    style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
-                    disabled
-                  />
+                  <label className="input-label" style={{ fontWeight: 500, color: 'var(--text-main)', marginBottom: '6px', display: 'block' }}>Admin Name</label>
+                  <div style={{ position: 'relative' }}>
+                    <User size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={adminName}
+                      onChange={(e) => setAdminName(e.target.value)}
+                      style={{ paddingLeft: '38px', width: '100%', backgroundColor: isEditingProfile ? '#ffffff' : '#f8fafc', color: isEditingProfile ? 'var(--text-main)' : 'var(--text-secondary)', border: isEditingProfile ? '1.5px solid var(--primary-purple)' : '1.5px solid var(--border-light)' }}
+                      required
+                      disabled={!isEditingProfile}
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
+                <div className="form-group">
+                  <label className="input-label" style={{ fontWeight: 500, color: 'var(--text-main)', marginBottom: '6px', display: 'block' }}>Login Email (Read-Only)</label>
+                  <div style={{ position: 'relative' }}>
+                    <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input
+                      type="email"
+                      className="form-input"
+                      value={auth.user?.email || ''}
+                      style={{ paddingLeft: '38px', width: '100%', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed', border: '1.5px solid var(--border-light)' }}
+                      disabled
+                    />
+                  </div>
+                </div>
+              </div>
 
-            <button
-              type="submit"
-              className="login-btn"
-              style={{ width: '140px', fontSize: '0.85rem', padding: '10px', border: 'none', marginTop: '24px' }}
-            >
-              Save Changes
-            </button>
-          </form>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' }}>
+                <div className="form-group">
+                  <label className="input-label" style={{ fontWeight: 500, color: 'var(--text-main)', marginBottom: '6px', display: 'block' }}>Phone Number</label>
+                  <div style={{ position: 'relative' }}>
+                    <Phone size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={adminPhone}
+                      onChange={(e) => setAdminPhone(e.target.value)}
+                      style={{ paddingLeft: '38px', width: '100%', backgroundColor: isEditingProfile ? '#ffffff' : '#f8fafc', color: isEditingProfile ? 'var(--text-main)' : 'var(--text-secondary)', border: isEditingProfile ? '1.5px solid var(--primary-purple)' : '1.5px solid var(--border-light)' }}
+                      disabled={!isEditingProfile}
+                    />
+                  </div>
+                </div>
+                {auth.user?.role === 'REGIONAL_ADMIN' && (
+                  <div className="form-group">
+                    <label className="input-label" style={{ fontWeight: 500, color: 'var(--text-main)', marginBottom: '6px', display: 'block' }}>Education Region Jurisdiction</label>
+                    <div style={{ position: 'relative' }}>
+                      <MapPin size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={adminRegion}
+                        style={{ paddingLeft: '38px', width: '100%', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed', border: '1.5px solid var(--border-light)' }}
+                        disabled
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {isEditingProfile && (
+                <button
+                  type="submit"
+                  className="login-btn"
+                  style={{ width: '140px', fontSize: '0.85rem', padding: '10px', border: 'none', marginTop: '28px', color: '#ffffff', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+                  disabled={isUpdatingAdmin}
+                >
+                  {isUpdatingAdmin ? 'Saving...' : 'Save Changes'}
+                </button>
+              )}
+            </form>
+          </div>
+          {renderPasswordForm()}
         </div>
       );
     }
 
     if (auth.user?.role === 'STUDENT') {
       const studentProfile = auth.user.profile;
-      const formattedDob = studentProfile?.dateOfBirth
-        ? new Date(studentProfile.dateOfBirth).toISOString().split('T')[0]
-        : '';
+
+      const handleStudentProfileSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setStudentUpdateSuccess(null);
+        setStudentUpdateError(null);
+        try {
+          const response = await updateStudentProfile({
+            name: studentNameState,
+            dateOfBirth: studentDobState
+          }).unwrap();
+
+          if (auth.user) {
+            dispatch(
+              setCredentials({
+                user: {
+                  ...auth.user,
+                  profile: response.profile
+                }
+              })
+            );
+          }
+          setStudentUpdateSuccess('Student profile updated successfully!');
+          setIsEditingProfile(false);
+        } catch (err: any) {
+          setStudentUpdateError(err?.data?.error || 'Failed to update profile. Please try again.');
+        }
+      };
 
       return (
-        <div className="card-widget" style={{ maxWidth: '640px' }}>
-          <h3 className="panel-title-text" style={{ marginBottom: '16px' }}>Student Profile Details</h3>
-          <div className="form-element">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div className="form-group">
-                <label className="input-label">Student Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={studentProfile?.name || ''}
-                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
-                  disabled
-                />
-              </div>
-              <div className="form-group">
-                <label className="input-label">Login Email / Username</label>
-                <input
-                  type="email"
-                  className="form-input"
-                  value={auth.user?.email || ''}
-                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
-                  disabled
-                />
-              </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          <div className="card-widget" style={{ maxWidth: '800px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h3 className="panel-title-text" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-main)' }}>Student Profile Details</h3>
+              <button
+                type="button"
+                onClick={() => setIsEditingProfile(!isEditingProfile)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: isEditingProfile ? 'var(--primary-purple)' : 'none',
+                  border: isEditingProfile ? 'none' : '1px solid var(--border-light)',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  color: isEditingProfile ? '#ffffff' : 'var(--text-secondary)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Pencil size={14} /> {isEditingProfile ? 'Cancel Edit' : 'Edit Profile'}
+              </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
-              <div className="form-group">
-                <label className="input-label">Date of Birth</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  value={formattedDob}
-                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
-                  disabled
-                />
+            {studentUpdateSuccess && (
+              <div style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
+                ✅ {studentUpdateSuccess}
               </div>
-              <div className="form-group">
-                <label className="input-label">Grade / Year Group</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={studentProfile?.grade || ''}
-                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
-                  disabled
-                />
+            )}
+
+            {studentUpdateError && (
+              <div style={{ color: '#b91c1c', backgroundColor: '#fef2f2', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #fecaca', marginBottom: '16px' }}>
+                ❌ {studentUpdateError}
               </div>
-            </div>
+            )}
+
+            <form className="form-element" onSubmit={handleStudentProfileSubmit}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-group">
+                  <label className="input-label">Student Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={studentNameState}
+                    onChange={(e) => setStudentNameState(e.target.value)}
+                    style={{ paddingLeft: '12px', backgroundColor: isEditingProfile ? '#ffffff' : '#f8fafc', color: isEditingProfile ? 'var(--text-main)' : 'var(--text-secondary)', border: isEditingProfile ? '1.5px solid var(--primary-purple)' : '1.5px solid var(--border-light)' }}
+                    required
+                    disabled={!isEditingProfile}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="input-label">Login Email / Username (Read-Only)</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    value={auth.user?.email || ''}
+                    style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed', border: '1.5px solid var(--border-light)' }}
+                    disabled
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+                <div className="form-group">
+                  <label className="input-label">Date of Birth</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={studentDobState}
+                    onChange={(e) => setStudentDobState(e.target.value)}
+                    style={{ paddingLeft: '12px', backgroundColor: isEditingProfile ? '#ffffff' : '#f8fafc', color: isEditingProfile ? 'var(--text-main)' : 'var(--text-secondary)', border: isEditingProfile ? '1.5px solid var(--primary-purple)' : '1.5px solid var(--border-light)' }}
+                    disabled={!isEditingProfile}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="input-label">Grade / Year Group (Read-Only)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={studentProfile?.grade || ''}
+                    style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed', border: '1.5px solid var(--border-light)' }}
+                    disabled
+                  />
+                </div>
+              </div>
+
+              {isEditingProfile && (
+                <button
+                  type="submit"
+                  className="login-btn"
+                  style={{ width: '140px', fontSize: '0.85rem', padding: '10px', border: 'none', marginTop: '24px' }}
+                  disabled={isUpdatingStudent}
+                >
+                  {isUpdatingStudent ? 'Saving...' : 'Save Changes'}
+                </button>
+              )}
+            </form>
           </div>
+          {renderPasswordForm()}
         </div>
       );
     }
@@ -1039,90 +1471,120 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
                 ...auth.user,
                 profile: response.parent,
               },
-              token: auth.token || '',
             })
           );
         }
         setProfileSuccess('Profile updated successfully!');
+        setIsEditingProfile(false);
       } catch (err: any) {
         setProfileError(err?.data?.error || 'Failed to update profile. Please try again.');
       }
     };
 
     return (
-      <div className="card-widget" style={{ maxWidth: '640px' }}>
-        <h3 className="panel-title-text" style={{ marginBottom: '16px' }}>Account Settings</h3>
-
-        {profileError && (
-          <div style={{ color: '#b91c1c', backgroundColor: '#fef2f2', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #fecaca', marginBottom: '16px' }}>
-            ⚠️ {profileError}
-          </div>
-        )}
-
-        {profileSuccess && (
-          <div style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
-            ✅ {profileSuccess}
-          </div>
-        )}
-
-        <form className="form-element" onSubmit={handleProfileSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div className="form-group">
-              <label className="input-label">Parent Account Name</label>
-              <input
-                type="text"
-                className="form-input"
-                value={profileName}
-                onChange={(e) => setProfileName(e.target.value)}
-                style={{ paddingLeft: '12px' }}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label className="input-label">Contact Email (Read-Only)</label>
-              <input
-                type="email"
-                className="form-input"
-                value={parentDetails ? parentDetails.email : ''}
-                style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
-                disabled
-              />
-            </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+        <div className="card-widget" style={{ maxWidth: '800px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <h3 className="panel-title-text" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-main)' }}>Account Settings</h3>
+            <button
+              type="button"
+              onClick={() => setIsEditingProfile(!isEditingProfile)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: isEditingProfile ? 'var(--primary-purple)' : 'none',
+                border: isEditingProfile ? 'none' : '1px solid var(--border-light)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                color: isEditingProfile ? '#ffffff' : 'var(--text-secondary)',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                transition: 'all 0.2s'
+              }}
+            >
+              <Pencil size={14} /> {isEditingProfile ? 'Cancel Edit' : 'Edit Profile'}
+            </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
-            <div className="form-group">
-              <label className="input-label">Phone Number</label>
-              <input
-                type="text"
-                className="form-input"
-                value={profilePhone}
-                onChange={(e) => setProfilePhone(e.target.value)}
-                style={{ paddingLeft: '12px' }}
-              />
+          {profileError && (
+            <div style={{ color: '#b91c1c', backgroundColor: '#fef2f2', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #fecaca', marginBottom: '16px' }}>
+              ⚠️ {profileError}
             </div>
-            <div className="form-group">
-              <label className="input-label">Region</label>
-              <input
-                type="text"
-                className="form-input"
-                value={profileRegion}
-                onChange={(e) => setProfileRegion(e.target.value)}
-                style={{ paddingLeft: '12px' }}
-                required
-              />
-            </div>
-          </div>
+          )}
 
-          <button
-            type="submit"
-            className="login-btn"
-            style={{ width: '140px', fontSize: '0.85rem', padding: '10px', border: 'none', marginTop: '24px' }}
-            disabled={isUpdatingProfile}
-          >
-            {isUpdatingProfile ? 'Saving...' : 'Save Changes'}
-          </button>
-        </form>
+          {profileSuccess && (
+            <div style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
+              ✅ {profileSuccess}
+            </div>
+          )}
+
+          <form className="form-element" onSubmit={handleProfileSubmit}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="form-group">
+                <label className="input-label">Parent Account Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  style={{ paddingLeft: '12px', backgroundColor: isEditingProfile ? '#ffffff' : '#f8fafc', color: isEditingProfile ? 'var(--text-main)' : 'var(--text-secondary)', border: isEditingProfile ? '1.5px solid var(--primary-purple)' : '1.5px solid var(--border-light)' }}
+                  required
+                  disabled={!isEditingProfile}
+                />
+              </div>
+              <div className="form-group">
+                <label className="input-label">Contact Email (Read-Only)</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  value={parentDetails ? parentDetails.email : ''}
+                  style={{ paddingLeft: '12px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed', border: '1.5px solid var(--border-light)' }}
+                  disabled
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+              <div className="form-group">
+                <label className="input-label">Phone Number</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={profilePhone}
+                  onChange={(e) => setProfilePhone(e.target.value)}
+                  style={{ paddingLeft: '12px', backgroundColor: isEditingProfile ? '#ffffff' : '#f8fafc', color: isEditingProfile ? 'var(--text-main)' : 'var(--text-secondary)', border: isEditingProfile ? '1.5px solid var(--primary-purple)' : '1.5px solid var(--border-light)' }}
+                  disabled={!isEditingProfile}
+                />
+              </div>
+              <div className="form-group">
+                <label className="input-label">Region</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={profileRegion}
+                  onChange={(e) => setProfileRegion(e.target.value)}
+                  style={{ paddingLeft: '12px', backgroundColor: isEditingProfile ? '#ffffff' : '#f8fafc', color: isEditingProfile ? 'var(--text-main)' : 'var(--text-secondary)', border: isEditingProfile ? '1.5px solid var(--primary-purple)' : '1.5px solid var(--border-light)' }}
+                  required
+                  disabled={!isEditingProfile}
+                />
+              </div>
+            </div>
+
+            {isEditingProfile && (
+              <button
+                type="submit"
+                className="login-btn"
+                style={{ width: '140px', fontSize: '0.85rem', padding: '10px', border: 'none', marginTop: '24px' }}
+                disabled={isUpdatingProfile}
+              >
+                {isUpdatingProfile ? 'Saving...' : 'Save Changes'}
+              </button>
+            )}
+          </form>
+        </div>
+        {renderPasswordForm()}
       </div>
     );
   }
@@ -1163,25 +1625,25 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
     };
 
     return (
-      <div className="card-widget" style={{ maxWidth: '640px', margin: '0 auto', position: 'relative' }}>
+      <div className="card-widget" style={{ maxWidth: '800px', margin: '0 auto', position: 'relative', border: '1px solid var(--border-light)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <h3 className="panel-title-text" style={{ margin: 0 }}>Designated Safeguarding Lead (DSL)</h3>
+          <h3 className="panel-title-text" style={{ margin: 0, color: 'var(--text-main)' }}>Designated Safeguarding Lead (DSL)</h3>
           {!isSgListLoading && safeguards.length === 0 && (
             <button
               onClick={() => setShowSgModal(true)}
               className="action-btn-outline"
-              style={{ width: 'auto', padding: '6px 14px', cursor: 'pointer', backgroundColor: '#583fc0', borderColor: '#583fc0', color: 'white', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 'bold' }}
+              style={{ width: 'auto', padding: '6px 14px', cursor: 'pointer', backgroundColor: 'var(--primary-purple)', borderColor: 'var(--primary-purple)', color: 'white', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 'bold' }}
             >
               Register Safeguard
             </button>
           )}
         </div>
-        <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '24px' }}>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '24px' }}>
           Contact details and status of the Designated Safeguarding Lead officer assigned to your education region. Only one officer can be assigned.
         </p>
 
         {isSgListLoading ? (
-          <div style={{ textAlign: 'center', padding: '30px', color: '#64748b', fontSize: '0.88rem' }}>
+          <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
             Loading safeguarding officer details...
           </div>
         ) : safeguards.length > 0 ? (
@@ -1190,8 +1652,8 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
               key={sg.id}
               className="contact-directory-row"
               style={{
-                borderLeft: '4px solid #3b82f6',
-                backgroundColor: '#f8fafc',
+                borderLeft: '4px solid var(--primary-purple)',
+                backgroundColor: 'var(--primary-purple-light)',
                 padding: '20px',
                 borderRadius: '8px',
                 display: 'flex',
@@ -1201,7 +1663,7 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0f172a' }}>{sg.name}</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-main)' }}>{sg.name}</span>
                 <span style={{
                   fontSize: '0.74rem',
                   padding: '4px 10px',
@@ -1214,17 +1676,17 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
                 </span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.82rem', color: '#475569', marginTop: '4px' }}>
-                <div>Email: <strong style={{ color: '#0f172a' }}>{sg.user?.email || 'N/A'}</strong></div>
-                <div>Phone: <strong style={{ color: '#0f172a' }}>{sg.phone || 'N/A'}</strong></div>
-                <div>Region Jurisdiction: <strong style={{ color: '#0f172a' }}>{sg.region || 'N/A'}</strong></div>
-                <div>Country: <strong style={{ color: '#0f172a' }}>{sg.country || 'N/A'}</strong></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                <div>Email: <strong style={{ color: 'var(--text-main)' }}>{sg.user?.email || 'N/A'}</strong></div>
+                <div>Phone: <strong style={{ color: 'var(--text-main)' }}>{sg.phone || 'N/A'}</strong></div>
+                <div>Region Jurisdiction: <strong style={{ color: 'var(--text-main)' }}>{sg.region || 'N/A'}</strong></div>
+                <div>Country: <strong style={{ color: 'var(--text-main)' }}>{sg.country || 'N/A'}</strong></div>
               </div>
             </div>
           ))
         ) : (
-          <div style={{ textAlign: 'center', padding: '40px 20px', border: '1px dashed #cbd5e1', borderRadius: '12px' }}>
-            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>
+          <div style={{ textAlign: 'center', padding: '40px 20px', border: '1px dashed var(--border-light)', borderRadius: '12px' }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
               No safeguarding officer has been assigned to your region ({auth.user?.profile?.region || 'N/A'}) yet. Click "Register Safeguard" to assign one.
             </p>
           </div>
@@ -1362,83 +1824,242 @@ export default function OtherPages({ pageId, childrenList, onAddChild, parentDet
     const parents = parentsData?.parents || [];
 
     return (
-      <div className="card-widget" style={{ maxWidth: '800px', margin: '0 auto' }}>
-        <h3 className="panel-title-text" style={{ marginBottom: '8px' }}>Parents Directory</h3>
-        <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '24px' }}>
-          Registered parent accounts and their enrolled children within your regional jurisdiction.
-        </p>
+      <div className="card-widget" style={{ maxWidth: '100%', border: '1px solid var(--border-light)', padding: '24px' }}>
+        <div style={{ borderLeft: '4px solid var(--primary-purple)', paddingLeft: '12px', marginBottom: '24px' }}>
+          <h3 className="panel-title-text" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-main)' }}>Parents Directory</h3>
+          <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            Overview of registered parent accounts, contact details, and their enrolled children. Click any student chip to inspect their profile.
+          </p>
+        </div>
 
         {isParentsLoading ? (
-          <div style={{ textAlign: 'center', padding: '30px', color: '#64748b', fontSize: '0.88rem' }}>
-            Loading parents directory...
+          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+            Loading parents ledger...
           </div>
         ) : parents.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {parents.map((parent: any) => (
-              <div 
-                key={parent.id} 
-                className="contact-directory-row" 
-                style={{ 
-                  borderLeft: '4px solid #10b981', 
-                  backgroundColor: '#f8fafc', 
-                  padding: '20px', 
-                  borderRadius: '8px', 
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                  <div>
-                    <h4 style={{ fontSize: '1.05rem', fontWeight: 'bold', color: '#0f172a', margin: '0 0 4px 0' }}>{parent.name}</h4>
-                    <div style={{ display: 'flex', gap: '16px', fontSize: '0.8rem', color: '#64748b' }}>
-                      <span>Email: <strong style={{ color: '#334155' }}>{parent.user?.email}</strong></span>
-                      {parent.phone && <span>Phone: <strong style={{ color: '#334155' }}>{parent.phone}</strong></span>}
-                      <span>Region: <strong style={{ color: '#334155' }}>{parent.region}</strong></span>
-                    </div>
-                  </div>
-                  <span style={{ 
-                    fontSize: '0.7rem', 
-                    padding: '3px 8px', 
-                    borderRadius: '12px', 
-                    fontWeight: 'bold', 
-                    backgroundColor: parent.user?.isActive ? '#ecfdf5' : '#fef2f2',
-                    color: parent.user?.isActive ? '#047857' : '#b91c1c'
-                  }}>
-                    {parent.user?.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
+          <div style={{ overflowX: 'auto', marginTop: '16px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--border-light)', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  <th style={{ padding: '12px 12px', width: '40px' }}></th>
+                  <th style={{ padding: '12px 16px', paddingLeft: 0 }}>Parent Name</th>
+                  <th style={{ padding: '12px 16px' }}>Email Address</th>
+                  <th style={{ padding: '12px 16px' }}>Phone Number</th>
+                  <th style={{ padding: '12px 16px' }}>Enrolled Children</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'right' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {parents.map((parent: any) => {
+                  const isExpanded = expandedParentId === parent.id;
+                  const studentCount = parent.students?.length || 0;
 
-                {parent.students && parent.students.length > 0 ? (
-                  <div style={{ marginTop: '14px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
-                    <span style={{ fontSize: '0.78rem', fontWeight: '600', color: '#475569', display: 'block', marginBottom: '8px' }}>
-                      Enrolled Children ({parent.students.length}):
-                    </span>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
-                      {parent.students.map((student: any) => (
-                        <div key={student.id} style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>
-                            🎓
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#1e293b' }}>{student.name}</div>
-                            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{student.grade || 'N/A'}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ marginTop: '10px', fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>
-                    No children enrolled yet.
-                  </div>
-                )}
-              </div>
-            ))}
+                  return (
+                    <React.Fragment key={parent.id}>
+                      <tr
+                        style={{ borderBottom: '1px solid var(--border-light)', transition: 'background-color 0.2s', cursor: 'pointer' }}
+                        onClick={() => setExpandedParentId(isExpanded ? null : parent.id)}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--primary-purple-light)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      >
+                        <td style={{ padding: '16px 12px', width: '40px', textAlign: 'center', color: 'var(--primary-purple)' }}>
+                          {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                        </td>
+                        <td style={{ padding: '16px 16px', paddingLeft: 0, fontWeight: 600, color: 'var(--text-main)' }}>
+                          {parent.name}
+                        </td>
+                        <td style={{ padding: '16px 16px', color: 'var(--text-secondary)' }}>
+                          {parent.user?.email}
+                        </td>
+                        <td style={{ padding: '16px 16px', color: 'var(--text-secondary)' }}>
+                          {parent.phone || 'N/A'}
+                        </td>
+                        <td style={{ padding: '16px 16px', fontWeight: 500, color: studentCount > 0 ? 'var(--primary-purple)' : 'var(--text-muted)' }}>
+                          {studentCount === 0 ? 'No Enrolled Children' : `${studentCount} Enrolled Student${studentCount > 1 ? 's' : ''}`}
+                        </td>
+                        <td style={{ padding: '16px 16px', textAlign: 'right' }}>
+                          <span style={{
+                            fontSize: '0.75rem',
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            fontWeight: 'bold',
+                            backgroundColor: parent.user?.isActive ? '#ecfdf5' : '#fef2f2',
+                            color: parent.user?.isActive ? '#047857' : '#b91c1c',
+                            display: 'inline-block'
+                          }}>
+                            {parent.user?.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                      </tr>
+
+                      {/* Collapsible Children Sub-Ledger Row */}
+                      {isExpanded && (
+                        <tr>
+                          <td colSpan={6} style={{ backgroundColor: 'var(--bg-portal)', padding: '20px 24px', borderBottom: '1px solid var(--border-light)' }}>
+                            <div style={{ borderLeft: '3px solid var(--primary-purple)', paddingLeft: '16px' }}>
+                              <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>Enrolled Children Details</h4>
+
+                              {studentCount > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                  {parent.students.map((student: any) => (
+                                    <div
+                                      key={student.id}
+                                      onClick={(e) => {
+                                        e.stopPropagation(); // prevent collapsing parent row
+                                        setSelectedStudentForModal({ ...student, parentName: parent.name });
+                                      }}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        backgroundColor: '#ffffff',
+                                        border: '1px solid var(--border-light)',
+                                        borderRadius: '8px',
+                                        padding: '12px 16px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s'
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.currentTarget.style.borderColor = 'var(--primary-purple)';
+                                        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.borderColor = 'var(--border-light)';
+                                        e.currentTarget.style.boxShadow = 'none';
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <span style={{ fontSize: '1.2rem' }}>🎓</span>
+                                        <div>
+                                          <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.85rem' }}>{student.name}</div>
+                                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                            Grade: {student.grade || 'N/A'} | Username: {student.user?.email || 'N/A'}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                          DOB: {student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString(undefined, { dateStyle: 'medium' }) : 'N/A'}
+                                        </div>
+                                        <span style={{
+                                          fontSize: '0.72rem',
+                                          padding: '2px 8px',
+                                          borderRadius: '10px',
+                                          fontWeight: 'bold',
+                                          backgroundColor: student.user?.isActive ? '#ecfdf5' : '#fef2f2',
+                                          color: student.user?.isActive ? '#047857' : '#b91c1c'
+                                        }}>
+                                          {student.user?.isActive ? 'Active' : 'Inactive'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '4px 0' }}>
+                                  No children registered under this parent account.
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '40px 20px', border: '1px dashed #cbd5e1', borderRadius: '12px' }}>
-            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>
-              No parents registered in your region ({auth.user?.profile?.region || 'N/A'}) yet.
-            </p>
+          <div style={{ textAlign: 'center', padding: '40px 20px', border: '1px dashed var(--border-light)', borderRadius: '12px', color: 'var(--text-secondary)' }}>
+            No parents registered in your region ({auth.user?.profile?.region || 'N/A'}) yet.
+          </div>
+        )}
+
+        {/* Student Details Modal */}
+        {selectedStudentForModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.4)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}>
+            <div className="card-widget" style={{ maxWidth: '440px', width: '100%', margin: 0, border: '1px solid var(--border-light)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', backgroundColor: 'white' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-light)', paddingBottom: '12px', marginBottom: '16px' }}>
+                <h3 className="panel-title-text" style={{ margin: 0, color: 'var(--text-main)' }}>Student Details</h3>
+                <button
+                  onClick={() => setSelectedStudentForModal(null)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--text-secondary)', fontWeight: 'bold' }}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', borderBottom: '1px solid var(--border-light)', paddingBottom: '16px' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--primary-purple-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
+                    🎓
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>{selectedStudentForModal.name}</h4>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-portal)', padding: '2px 8px', borderRadius: '12px', border: '1px solid var(--border-light)', display: 'inline-block', marginTop: '4px' }}>
+                      {selectedStudentForModal.grade || 'N/A'}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  <div>
+                    <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '2px' }}>Parent Account</span>
+                    <strong style={{ color: 'var(--text-main)' }}>{selectedStudentForModal.parentName}</strong>
+                  </div>
+                  <div>
+                    <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '2px' }}>Date of Birth</span>
+                    <strong style={{ color: 'var(--text-main)' }}>
+                      {selectedStudentForModal.dateOfBirth ? new Date(selectedStudentForModal.dateOfBirth).toLocaleDateString(undefined, { dateStyle: 'medium' }) : 'N/A'}
+                    </strong>
+                  </div>
+                  <div>
+                    <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '2px' }}>Student Email / Username</span>
+                    <strong style={{ color: 'var(--text-main)' }}>{selectedStudentForModal.user?.email || 'N/A'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '2px' }}>Account Status</span>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontWeight: 'bold',
+                      backgroundColor: selectedStudentForModal.user?.isActive ? '#ecfdf5' : '#fef2f2',
+                      color: selectedStudentForModal.user?.isActive ? '#047857' : '#b91c1c',
+                      display: 'inline-block',
+                      marginTop: '2px'
+                    }}>
+                      {selectedStudentForModal.user?.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px', borderTop: '1px solid var(--border-light)', paddingTop: '16px' }}>
+                <button
+                  onClick={() => setSelectedStudentForModal(null)}
+                  className="login-btn"
+                  style={{ width: 'auto', padding: '8px 20px', border: 'none', cursor: 'pointer', margin: 0, fontSize: '0.85rem' }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Shield, Mail, Lock, ArrowRight, AlertTriangle, Eye, EyeOff, ChevronLeft } from 'lucide-react';
-import { useLoginSafeguardMutation } from '../../store/apiSlice';
+import { useLoginSafeguardMutation, useForgotPasswordMutation, useResetPasswordMutation } from '../../store/apiSlice';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../../store/slices/authSlice';
 
@@ -13,23 +13,35 @@ export default function GuardLogin({ onLoginSuccess }: LoginProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Forgot password states
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [forgotStep, setForgotStep] = useState(1);
+  const [forgotMessage, setForgotMessage] = useState<string | null>(null);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+
   const dispatch = useDispatch();
 
   const [loginSafeguard, { isLoading }] = useLoginSafeguardMutation();
+  const [forgotPasswordMutation, { isLoading: isForgotLoading }] = useForgotPasswordMutation();
+  const [resetPasswordMutation, { isLoading: isResetLoading }] = useResetPasswordMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     try {
       const response = await loginSafeguard({ email, password }).unwrap();
-      dispatch(setCredentials({ user: response.user, token: response.token }));
+      dispatch(setCredentials({ user: response.user }));
       onLoginSuccess(response.user.profile?.name || email.split('@')[0], 'guard');
     } catch (err: any) {
       setError(err?.data?.error || 'Invalid credentials or connection error.');
     }
   };
 
- 
+
 
   return (
     <>
@@ -172,81 +184,198 @@ export default function GuardLogin({ onLoginSuccess }: LoginProps) {
         <div className="gd-bg-blob-1" />
         <div className="gd-bg-blob-2" />
 
-        
+
 
         <div className="gd-card">
-          <div className="gd-card-top-bar" />
-
-          <div className="gd-brand">
-            <img src="/ilmee_logo.png" alt="ILMEE Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'contain', marginBottom: '8px' }} />
-            <span className="gd-brand-name">ILMEE</span>
-            <span className="gd-brand-sub">Guard / Security Portal</span>
-          </div>
-
-          <h2 className="gd-heading">Secure Access</h2>
-          <p className="gd-sub">Enter your credentials to access the security dashboard.</p>
-
-          <div className="gd-notice">
-            <Shield size={13} />
-            This is a restricted portal for authorised security staff only.
-          </div>
-
-          {error && (
-            <div className="gd-error">
-              <AlertTriangle size={15} />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="gd-form">
-            <div className="gd-field">
-              <label className="gd-label">Guard ID / Email</label>
-              <div className="gd-input-wrap">
-                <Mail size={15} className="gd-input-icon" />
-                <input
-                  type="text"
-                  className="gd-input"
-                  placeholder="guard@ilmee.co.uk"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
-                  required
-                />
+          {showForgotPassword ? (
+            <>
+              <button style={{ position: 'absolute', top: '1rem', left: '1rem', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#506e4d', cursor: 'pointer', background: 'none', border: 'none', padding: '6px 10px', borderRadius: '6px' }} onClick={() => { setShowForgotPassword(false); setForgotStep(1); setForgotError(null); setForgotMessage(null); }}>
+                <ChevronLeft size={16} /> Back to Sign In
+              </button>
+              
+              <div className="gd-brand" style={{ marginTop: '20px' }}>
+                <img src="/ilmee_logo.png" alt="ILMEE Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'contain', marginBottom: '8px' }} />
+                <span className="gd-brand-name">LSA</span>
+                <span className="gd-brand-sub">Password Recovery</span>
               </div>
-            </div>
 
-            <div className="gd-field">
-              <label className="gd-label">Password</label>
-              <div className="gd-input-wrap">
-                <Lock size={15} className="gd-input-icon" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  className="gd-input"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
-                  required
-                />
-                <button
-                  type="button"
-                  className="gd-eye-btn"
-                  onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-            </div>
+              <h2 className="gd-heading">Forgot Password</h2>
+              <p className="gd-sub">Reset your safeguard guard account password using your email address</p>
 
-            <button type="submit" className="gd-submit-btn" disabled={isLoading}>
-              {isLoading ? (
-                <><div className="gd-spinner" /> Authenticating…</>
-              ) : (
-                <>Secure Login <ArrowRight size={15} /></>
+              {forgotError && (
+                <div className="gd-error">
+                  <AlertTriangle size={15} />
+                  <span>{forgotError}</span>
+                </div>
               )}
-            </button>
-          </form>
+
+              {forgotMessage && (
+                <div style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
+                  ✅ {forgotMessage}
+                </div>
+              )}
+
+              {forgotStep === 1 ? (
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  setForgotError(null);
+                  setForgotMessage(null);
+                  try {
+                    await forgotPasswordMutation({ email: forgotEmail }).unwrap();
+                    setForgotStep(2);
+                    setForgotMessage('Verification code sent to your email.');
+                  } catch (err: any) {
+                    setForgotError(err?.data?.error || 'Failed to send verification code.');
+                  }
+                }} className="gd-form">
+                  <div className="gd-field">
+                    <label className="gd-label">Email address</label>
+                    <div className="gd-input-wrap">
+                      <Mail size={15} className="gd-input-icon" />
+                      <input
+                        type="email"
+                        className="gd-input"
+                        placeholder="guard@example.com"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        disabled={isForgotLoading}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <button type="submit" className="gd-submit-btn" disabled={isForgotLoading}>
+                    {isForgotLoading ? 'Sending...' : 'Send Verification Code'}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  setForgotError(null);
+                  setForgotMessage(null);
+                  try {
+                    await resetPasswordMutation({ email: forgotEmail, otp, newPassword }).unwrap();
+                    setForgotMessage('Password reset successful! Redirecting to login...');
+                    setTimeout(() => {
+                      setShowForgotPassword(false);
+                      setForgotStep(1);
+                      setForgotEmail('');
+                      setOtp('');
+                      setNewPassword('');
+                      setForgotMessage(null);
+                    }, 2500);
+                  } catch (err: any) {
+                    setForgotError(err?.data?.error || 'Failed to reset password.');
+                  }
+                }} className="gd-form">
+                  <div className="gd-field">
+                    <label className="gd-label">Verification Code (OTP)</label>
+                    <input
+                      type="text"
+                      className="gd-input"
+                      placeholder="Enter 6-digit code"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      disabled={isResetLoading}
+                      required
+                    />
+                  </div>
+                  <div className="gd-field" style={{ marginTop: '16px' }}>
+                    <label className="gd-label" style={{ display: 'block', marginBottom: '6px' }}>New Password</label>
+                    <input
+                      type="password"
+                      className="gd-input"
+                      placeholder="••••••••"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      disabled={isResetLoading}
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="gd-submit-btn" style={{ marginTop: '24px' }} disabled={isResetLoading}>
+                    {isResetLoading ? 'Resetting...' : 'Reset Password'}
+                  </button>
+                </form>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="gd-card-top-bar" />
+
+              <div className="gd-brand">
+                <img src="/ilmee_logo.png" alt="ILMEE Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'contain', marginBottom: '8px' }} />
+                <span className="gd-brand-name">LSA</span>
+                <span className="gd-brand-sub">Guard / Security Portal</span>
+              </div>
+
+              <h2 className="gd-heading">Secure Access</h2>
+              <p className="gd-sub">Enter your credentials to access the security dashboard.</p>
+
+              <div className="gd-notice">
+                <Shield size={13} />
+                This is a restricted portal for authorised security staff only.
+              </div>
+
+              {error && (
+                <div className="gd-error">
+                  <AlertTriangle size={15} />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="gd-form">
+                <div className="gd-field">
+                  <label className="gd-label">Guard ID / Email</label>
+                  <div className="gd-input-wrap">
+                    <Mail size={15} className="gd-input-icon" />
+                    <input
+                      type="text"
+                      className="gd-input"
+                      placeholder="Enter your email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={isLoading}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="gd-field">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label className="gd-label" style={{ margin: 0 }}>Password</label>
+                    <button type="button" onClick={() => { setShowForgotPassword(true); setForgotStep(1); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '11px', color: '#506e4d' }}>Forgot password?</button>
+                  </div>
+                  <div className="gd-input-wrap">
+                    <Lock size={15} className="gd-input-icon" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      className="gd-input"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={isLoading}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="gd-eye-btn"
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                </div>
+
+                <button type="submit" className="gd-submit-btn" disabled={isLoading}>
+                  {isLoading ? (
+                    <><div className="gd-spinner" /> Authenticating…</>
+                  ) : (
+                    <>Secure Login <ArrowRight size={15} /></>
+                  )}
+                </button>
+              </form>
+            </>
+          )}
         </div>
       </div>
     </>

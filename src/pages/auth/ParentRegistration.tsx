@@ -39,7 +39,7 @@ export default function ParentRegistration({ onRegisterSuccess }: RegisterProps)
       setError('Password must be at least 6 characters.');
       return;
     }
-    
+
     try {
       await registerParent({
         name,
@@ -51,8 +51,8 @@ export default function ParentRegistration({ onRegisterSuccess }: RegisterProps)
 
       // Automatically login after successful registration
       const loginResponse = await loginParent({ email, password }).unwrap();
-      dispatch(setCredentials({ user: loginResponse.user, token: loginResponse.token }));
-      
+      dispatch(setCredentials({ user: loginResponse.user }));
+
       onRegisterSuccess({ name, email, phone, region });
     } catch (err: any) {
       setError(err?.data?.error || 'Registration failed. Please try again.');
@@ -307,7 +307,7 @@ export default function ParentRegistration({ onRegisterSuccess }: RegisterProps)
           <div className="pr-register-card">
             <div className="pr-brand">
               <img src="/ilmee_logo.png" alt="ILMEE Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'contain', marginBottom: '8px' }} />
-              <span className="pr-brand-name">ILMEE</span>
+              <span className="pr-brand-name">LSA</span>
               <span className="pr-brand-sub">Parent Registration</span>
             </div>
 
@@ -463,14 +463,14 @@ export default function ParentRegistration({ onRegisterSuccess }: RegisterProps)
             </div>
 
             <div className="pr-right-badge">
-              <BookOpen size={11} /> ILMEE Admissions
+              <BookOpen size={11} /> LSA Admissions
             </div>
 
             <p className="pr-right-quote">
-              Join the ILMEE community and take control of your child's education with our comprehensive homeschooling platform.
+              Join the LSA community and take control of your child's education with our comprehensive homeschooling platform.
             </p>
             <p className="pr-right-attr">
-              <strong>ILMEE Admissions Team</strong> · UK Educator Support
+              <strong>LSA Admissions Team</strong> · UK Educator Support
             </p>
           </div>
         </div>

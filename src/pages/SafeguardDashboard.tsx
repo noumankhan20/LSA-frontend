@@ -99,10 +99,11 @@ const initialQueries = [
   }
 ];
 
-export default function SafeguardDashboard({ type }: SafeguardDashboardProps) {
+export default function SafeguardDashboard() {
   const [tickets, setTickets] = useState(initialTickets);
   const [queries, setQueries] = useState(initialQueries);
   
+  const [activeTab, setActiveTab] = useState<'tickets' | 'queries'>('tickets');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSeverity, setFilterSeverity] = useState('all');
   const [filterRole, setFilterRole] = useState('all');
@@ -164,49 +165,91 @@ export default function SafeguardDashboard({ type }: SafeguardDashboardProps) {
   };
 
   return (
-    <div style={{ fontFamily: 'system-ui, sans-serif', padding: '10px 0' }}>
+    <div style={{ fontFamily: 'var(--font-sans)', padding: '10px 0' }}>
       {/* Safeguarding Header Hero */}
-      <div className="card-widget" style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)', color: 'white', padding: '30px', borderRadius: '16px', border: 'none' }}>
+      <div className="card-widget" style={{ marginBottom: '24px', background: 'linear-gradient(135deg, var(--primary-purple) 0%, var(--primary-purple-hover) 100%)', color: 'white', padding: '30px', borderRadius: '16px', border: 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {type === 'raised-tickets' ? <ClipboardList size={24} style={{ color: '#60a5fa' }} /> : <MessageSquare size={24} style={{ color: '#60a5fa' }} />}
+          <div style={{ width: '48px', height: '48px', backgroundColor: 'rgba(255, 255, 255, 0.15)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {activeTab === 'tickets' ? <ClipboardList size={24} style={{ color: 'white' }} /> : <MessageSquare size={24} style={{ color: 'white' }} />}
           </div>
           <div>
-            <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'white', marginBottom: '4px' }}>
-              Safeguard DSL Portal - {type === 'raised-tickets' ? 'Raised Tickets' : 'Queries'}
+            <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'white', marginBottom: '4px', fontFamily: 'var(--font-title)' }}>
+              Safeguard DSL Portal - {activeTab === 'tickets' ? 'Raised Tickets' : 'Queries'}
             </h2>
-            <p style={{ fontSize: '0.88rem', color: '#93c5fd', opacity: 0.95 }}>
+            <p style={{ fontSize: '0.88rem', color: 'var(--primary-purple-light)', opacity: 0.95 }}>
               Track active welfare reports, review security alerts, and resolve student or parent concerns promptly.
             </p>
           </div>
         </div>
       </div>
 
+      {/* Internal Sub-tab Switcher */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+        <button
+          onClick={() => { setActiveTab('tickets'); setSelectedTicket(null); setSelectedQuery(null); }}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '24px',
+            border: activeTab === 'tickets' ? 'none' : '1px solid var(--border-light)',
+            backgroundColor: activeTab === 'tickets' ? 'var(--primary-purple)' : '#ffffff',
+            color: activeTab === 'tickets' ? '#ffffff' : 'var(--text-secondary)',
+            fontWeight: 600,
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <ClipboardList size={16} /> Raised Welfare Tickets
+        </button>
+        <button
+          onClick={() => { setActiveTab('queries'); setSelectedTicket(null); setSelectedQuery(null); }}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '24px',
+            border: activeTab === 'queries' ? 'none' : '1px solid var(--border-light)',
+            backgroundColor: activeTab === 'queries' ? 'var(--primary-purple)' : '#ffffff',
+            color: activeTab === 'queries' ? '#ffffff' : 'var(--text-secondary)',
+            fontWeight: 600,
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <MessageSquare size={16} /> Support Queries
+        </button>
+      </div>
+
       {/* Analytics Mini Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '24px' }}>
-        <div className="card-widget" style={{ padding: '16px 20px', backgroundColor: 'white', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: '500' }}>Active Tickets</span>
-          <span style={{ fontSize: '1.8rem', fontWeight: '800', color: '#1e3a8a', marginTop: '6px' }}>
+        <div className="card-widget" style={{ padding: '16px 20px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: '500' }}>Active Tickets</span>
+          <span style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-purple)', marginTop: '6px' }}>
             {tickets.filter(t => t.status !== 'resolved').length}
           </span>
           <span style={{ fontSize: '0.7rem', color: '#10b981', marginTop: '4px', fontWeight: '600' }}>Requires attention</span>
         </div>
-        <div className="card-widget" style={{ padding: '16px 20px', backgroundColor: 'white', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: '500' }}>High Severity Cases</span>
+        <div className="card-widget" style={{ padding: '16px 20px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: '500' }}>High Severity Cases</span>
           <span style={{ fontSize: '1.8rem', fontWeight: '800', color: '#b91c1c', marginTop: '6px' }}>
             {tickets.filter(t => t.severity === 'high' && t.status !== 'resolved').length}
           </span>
           <span style={{ fontSize: '0.7rem', color: '#dc2626', marginTop: '4px', fontWeight: '600' }}>Critical Priority</span>
         </div>
-        <div className="card-widget" style={{ padding: '16px 20px', backgroundColor: 'white', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: '500' }}>Unanswered Queries</span>
+        <div className="card-widget" style={{ padding: '16px 20px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: '500' }}>Unanswered Queries</span>
           <span style={{ fontSize: '1.8rem', fontWeight: '800', color: '#d97706', marginTop: '6px' }}>
             {queries.filter(q => q.status === 'unanswered').length}
           </span>
           <span style={{ fontSize: '0.7rem', color: '#d97706', marginTop: '4px', fontWeight: '600' }}>Needs response</span>
         </div>
-        <div className="card-widget" style={{ padding: '16px 20px', backgroundColor: 'white', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: '500' }}>Resolved Tickets</span>
+        <div className="card-widget" style={{ padding: '16px 20px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: '500' }}>Resolved Tickets</span>
           <span style={{ fontSize: '1.8rem', fontWeight: '800', color: '#047857', marginTop: '6px' }}>
             {tickets.filter(t => t.status === 'resolved').length}
           </span>
@@ -215,30 +258,30 @@ export default function SafeguardDashboard({ type }: SafeguardDashboardProps) {
       </div>
 
       {/* Control panel (Search & Filter) */}
-      <div className="card-widget" style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px', display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap' }}>
+      <div className="card-widget" style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--border-light)', padding: '16px', display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
-          <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+          <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input 
             type="text" 
             placeholder="Search by title, student name, or details..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="form-input"
-            style={{ paddingLeft: '38px', margin: 0, width: '100%' }}
+            style={{ paddingLeft: '38px', margin: 0, width: '100%', border: '1.5px solid var(--border-light)' }}
           />
         </div>
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Filter size={14} /> Filters:
           </span>
 
-          {type === 'raised-tickets' && (
+          {activeTab === 'tickets' && (
             <select 
               value={filterSeverity} 
               onChange={(e) => setFilterSeverity(e.target.value)} 
               className="form-input" 
-              style={{ fontSize: '0.82rem', padding: '6px 12px', width: '140px', margin: 0 }}
+              style={{ fontSize: '0.82rem', padding: '6px 12px', width: '140px', margin: 0, border: '1.5px solid var(--border-light)' }}
             >
               <option value="all">All Severities</option>
               <option value="high">High Severity</option>
@@ -251,7 +294,7 @@ export default function SafeguardDashboard({ type }: SafeguardDashboardProps) {
             value={filterRole} 
             onChange={(e) => setFilterRole(e.target.value)} 
             className="form-input" 
-            style={{ fontSize: '0.82rem', padding: '6px 12px', width: '150px', margin: 0 }}
+            style={{ fontSize: '0.82rem', padding: '6px 12px', width: '150px', margin: 0, border: '1.5px solid var(--border-light)' }}
           >
             <option value="all">All Raised By</option>
             <option value="parent">Raised by Parents</option>
@@ -264,34 +307,34 @@ export default function SafeguardDashboard({ type }: SafeguardDashboardProps) {
       <div style={{ display: 'grid', gridTemplateColumns: selectedTicket || selectedQuery ? '1.2fr 0.8fr' : '1fr', gap: '24px', alignItems: 'start', transition: 'all 0.3s ease' }}>
         
         {/* Left Hand List Column */}
-        <div className="card-widget" style={{ padding: '24px', backgroundColor: 'white', borderRadius: '12px' }}>
+        <div className="card-widget" style={{ padding: '24px', backgroundColor: 'white', border: '1px solid var(--border-light)', borderRadius: '12px' }}>
           <h3 className="panel-title-text" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>{type === 'raised-tickets' ? 'Tickets Log' : 'Queries Log'}</span>
-            <span style={{ fontSize: '0.78rem', fontWeight: 'normal', color: '#64748b' }}>
-              Showing {type === 'raised-tickets' ? filteredTickets.length : filteredQueries.length} items
+            <span>{activeTab === 'tickets' ? 'Tickets Log' : 'Queries Log'}</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 'normal', color: 'var(--text-secondary)' }}>
+              Showing {activeTab === 'tickets' ? filteredTickets.length : filteredQueries.length} items
             </span>
           </h3>
 
-          {type === 'raised-tickets' ? (
+          {activeTab === 'tickets' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {filteredTickets.map(tkt => (
                 <div 
                   key={tkt.id} 
                   onClick={() => { setSelectedTicket(tkt); setSelectedQuery(null); }}
                   style={{ 
-                    border: '1px solid #e2e8f0', 
+                    border: '1px solid var(--border-light)', 
                     borderRadius: '12px', 
                     padding: '16px', 
                     cursor: 'pointer',
-                    backgroundColor: selectedTicket?.id === tkt.id ? '#f0f4ff' : 'white',
-                    borderColor: selectedTicket?.id === tkt.id ? '#3b82f6' : '#e2e8f0',
+                    backgroundColor: selectedTicket?.id === tkt.id ? 'var(--primary-purple-light)' : 'white',
+                    borderColor: selectedTicket?.id === tkt.id ? 'var(--primary-purple)' : 'var(--border-light)',
                     transition: 'all 0.2s'
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                     <div>
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: '600' }}>{tkt.id}</span>
-                      <h4 style={{ fontSize: '0.92rem', fontWeight: '700', color: '#1e293b', marginTop: '2px' }}>{tkt.title}</h4>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: '600' }}>{tkt.id}</span>
+                      <h4 style={{ fontSize: '0.92rem', fontWeight: '700', color: 'var(--text-main)', marginTop: '2px' }}>{tkt.title}</h4>
                     </div>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <span className={`concern-severity-pill ${tkt.severity}`} style={{ fontSize: '0.68rem', padding: '3px 8px' }}>
@@ -310,11 +353,11 @@ export default function SafeguardDashboard({ type }: SafeguardDashboardProps) {
                     </div>
                   </div>
 
-                  <p style={{ fontSize: '0.8rem', color: '#64748b', lineBreak: 'anywhere', marginBottom: '12px' }}>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineBreak: 'anywhere', marginBottom: '12px' }}>
                     {tkt.desc.substring(0, 100)}{tkt.desc.length > 100 ? '...' : ''}
                   </p>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #f1f5f9', paddingTop: '8px', fontSize: '0.74rem', color: '#64748b' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-light)', paddingTop: '8px', fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
                     <span>By: <strong>{tkt.reporter}</strong></span>
                     <span>Student: <strong>{tkt.childName}</strong></span>
                     <span>{tkt.date}</span>
@@ -322,7 +365,7 @@ export default function SafeguardDashboard({ type }: SafeguardDashboardProps) {
                 </div>
               ))}
               {filteredTickets.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b', fontSize: '0.85rem' }}>
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                   No tickets match the search or filter criteria.
                 </div>
               )}
@@ -334,19 +377,19 @@ export default function SafeguardDashboard({ type }: SafeguardDashboardProps) {
                   key={qry.id} 
                   onClick={() => { setSelectedQuery(qry); setSelectedTicket(null); }}
                   style={{ 
-                    border: '1px solid #e2e8f0', 
+                    border: '1px solid var(--border-light)', 
                     borderRadius: '12px', 
                     padding: '16px', 
                     cursor: 'pointer',
-                    backgroundColor: selectedQuery?.id === qry.id ? '#f0f4ff' : 'white',
-                    borderColor: selectedQuery?.id === qry.id ? '#3b82f6' : '#e2e8f0',
+                    backgroundColor: selectedQuery?.id === qry.id ? 'var(--primary-purple-light)' : 'white',
+                    borderColor: selectedQuery?.id === qry.id ? 'var(--primary-purple)' : 'var(--border-light)',
                     transition: 'all 0.2s'
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                     <div>
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: '600' }}>{qry.id}</span>
-                      <h4 style={{ fontSize: '0.92rem', fontWeight: '700', color: '#1e293b', marginTop: '2px' }}>{qry.subject}</h4>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: '600' }}>{qry.id}</span>
+                      <h4 style={{ fontSize: '0.92rem', fontWeight: '700', color: 'var(--text-main)', marginTop: '2px' }}>{qry.subject}</h4>
                     </div>
                     <span style={{ 
                       fontSize: '0.68rem', 
@@ -360,18 +403,18 @@ export default function SafeguardDashboard({ type }: SafeguardDashboardProps) {
                     </span>
                   </div>
 
-                  <p style={{ fontSize: '0.8rem', color: '#64748b', lineBreak: 'anywhere', marginBottom: '12px' }}>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineBreak: 'anywhere', marginBottom: '12px' }}>
                     {qry.message.substring(0, 100)}{qry.message.length > 100 ? '...' : ''}
                   </p>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #f1f5f9', paddingTop: '8px', fontSize: '0.74rem', color: '#64748b' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-light)', paddingTop: '8px', fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
                     <span>By: <strong>{qry.reporter}</strong></span>
                     <span>{qry.date}</span>
                   </div>
                 </div>
               ))}
               {filteredQueries.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b', fontSize: '0.85rem' }}>
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                   No queries match the search or filter criteria.
                 </div>
               )}
@@ -381,37 +424,37 @@ export default function SafeguardDashboard({ type }: SafeguardDashboardProps) {
 
         {/* Right Detail Pane Column */}
         {(selectedTicket || selectedQuery) && (
-          <div className="card-widget" style={{ padding: '24px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #3b82f6', position: 'sticky', top: '20px' }}>
+          <div className="card-widget" style={{ padding: '24px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--primary-purple)', position: 'sticky', top: '20px' }}>
             {selectedTicket && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 'bold' }}>{selectedTicket.id}</span>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>{selectedTicket.id}</span>
                   <button 
                     onClick={() => setSelectedTicket(null)} 
-                    style={{ background: 'none', border: 'none', fontSize: '0.85rem', color: '#64748b', cursor: 'pointer' }}
+                    style={{ background: 'none', border: 'none', fontSize: '0.85rem', color: 'var(--text-secondary)', cursor: 'pointer' }}
                   >
                     Close
                   </button>
                 </div>
 
-                <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', marginBottom: '8px' }}>{selectedTicket.title}</h3>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--text-main)', marginBottom: '8px' }}>{selectedTicket.title}</h3>
                 <span className={`concern-severity-pill ${selectedTicket.severity}`} style={{ fontSize: '0.72rem', display: 'inline-block', marginBottom: '16px' }}>
                   {selectedTicket.severity} severity
                 </span>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', fontSize: '0.8rem', color: '#475569' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px', backgroundColor: 'var(--bg-portal)', padding: '12px', borderRadius: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                   <div>Reporter: <strong>{selectedTicket.reporter}</strong></div>
                   <div>Child Profile: <strong>{selectedTicket.childName}</strong></div>
                   <div>Created On: <strong>{selectedTicket.date}</strong></div>
                   <div>Category: <strong>{selectedTicket.category}</strong></div>
                 </div>
 
-                <h4 style={{ fontSize: '0.82rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Ticket Description</h4>
-                <p style={{ fontSize: '0.82rem', color: '#475569', lineHeight: '1.5', marginBottom: '24px', whiteSpace: 'pre-wrap' }}>
+                <h4 style={{ fontSize: '0.82rem', fontWeight: '700', color: 'var(--text-main)', marginBottom: '6px' }}>Ticket Description</h4>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '24px', whiteSpace: 'pre-wrap' }}>
                   {selectedTicket.desc}
                 </p>
 
-                <h4 style={{ fontSize: '0.82rem', fontWeight: '700', color: '#334155', marginBottom: '12px' }}>Update Status</h4>
+                <h4 style={{ fontSize: '0.82rem', fontWeight: '700', color: 'var(--text-main)', marginBottom: '12px' }}>Update Status</h4>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button 
                     onClick={() => handleTicketStatusChange(selectedTicket.id, 'open')}
@@ -441,18 +484,18 @@ export default function SafeguardDashboard({ type }: SafeguardDashboardProps) {
             {selectedQuery && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 'bold' }}>{selectedQuery.id}</span>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>{selectedQuery.id}</span>
                   <button 
                     onClick={() => setSelectedQuery(null)} 
-                    style={{ background: 'none', border: 'none', fontSize: '0.85rem', color: '#64748b', cursor: 'pointer' }}
+                    style={{ background: 'none', border: 'none', fontSize: '0.85rem', color: 'var(--text-secondary)', cursor: 'pointer' }}
                   >
                     Close
                   </button>
                 </div>
 
-                <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', marginBottom: '8px' }}>{selectedQuery.subject}</h3>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--text-main)', marginBottom: '8px' }}>{selectedQuery.subject}</h3>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>By: <strong>{selectedQuery.reporter}</strong></span>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>By: <strong>{selectedQuery.reporter}</strong></span>
                   <span style={{ 
                     fontSize: '0.68rem', 
                     padding: '3px 8px', 
@@ -465,22 +508,22 @@ export default function SafeguardDashboard({ type }: SafeguardDashboardProps) {
                   </span>
                 </div>
 
-                <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', fontSize: '0.82rem', color: '#475569', lineHeight: '1.5', marginBottom: '20px' }}>
+                <div style={{ backgroundColor: 'var(--bg-portal)', padding: '12px', borderRadius: '8px', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '20px' }}>
                   {selectedQuery.message}
                 </div>
 
                 {/* Reply Threads */}
                 {selectedQuery.replies.length > 0 && (
                   <div style={{ marginBottom: '20px' }}>
-                    <h4 style={{ fontSize: '0.82rem', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>Replies</h4>
+                    <h4 style={{ fontSize: '0.82rem', fontWeight: '700', color: 'var(--text-main)', marginBottom: '8px' }}>Replies</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {selectedQuery.replies.map((rep, idx) => (
-                        <div key={idx} style={{ backgroundColor: '#f1f5f9', padding: '10px', borderRadius: '8px', fontSize: '0.78rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', color: '#1e293b', marginBottom: '4px' }}>
+                        <div key={idx} style={{ backgroundColor: 'var(--bg-portal)', border: '1px solid var(--border-light)', padding: '10px', borderRadius: '8px', fontSize: '0.78rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', color: 'var(--text-main)', marginBottom: '4px' }}>
                             <span>{rep.sender}</span>
-                            <span style={{ fontWeight: 'normal', color: '#64748b' }}>{rep.date}</span>
+                            <span style={{ fontWeight: 'normal', color: 'var(--text-muted)' }}>{rep.date}</span>
                           </div>
-                          <p style={{ color: '#475569', margin: 0 }}>{rep.text}</p>
+                          <p style={{ color: 'var(--text-secondary)', margin: 0 }}>{rep.text}</p>
                         </div>
                       ))}
                     </div>
@@ -489,7 +532,7 @@ export default function SafeguardDashboard({ type }: SafeguardDashboardProps) {
 
                 {/* Quick Reply Form */}
                 <form onSubmit={(e) => handleAddReply(e, selectedQuery.id)}>
-                  <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: '700', color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>
                     Quick Reply
                   </label>
                   <textarea
@@ -498,7 +541,7 @@ export default function SafeguardDashboard({ type }: SafeguardDashboardProps) {
                     onChange={(e) => setReplyText(e.target.value)}
                     className="form-input"
                     rows={4}
-                    style={{ fontSize: '0.82rem', padding: '10px', width: '100%', resize: 'none', marginBottom: '12px' }}
+                    style={{ fontSize: '0.82rem', padding: '10px', width: '100%', resize: 'none', marginBottom: '12px', border: '1.5px solid var(--border-light)' }}
                     required
                   />
                   <button 

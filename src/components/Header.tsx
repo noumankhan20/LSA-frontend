@@ -10,17 +10,19 @@ interface HeaderProps {
   loggedInUser: string;
   childrenList: Array<{ name: string; year: string }>;
   userRole?: string;
+  onPageChange?: (page: string, subpage?: string) => void;
 }
 
-export default function Header({ 
-  currentPage, 
-  currentSubpage, 
+export default function Header({
+  currentPage,
+  currentSubpage,
   onLogout,
   selectedChildName,
   setSelectedChildName,
   loggedInUser,
   childrenList,
-  userRole
+  userRole,
+  onPageChange
 }: HeaderProps) {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showChildDropdown, setShowChildDropdown] = useState(false);
@@ -65,7 +67,7 @@ export default function Header({
       {/* Breadcrumb Selector */}
       <div className="header-left">
         <div className="position-relative">
-          <button 
+          <button
             className="breadcrumb-select-trigger"
             onClick={() => {
               if (userRole === 'parent') {
@@ -80,7 +82,7 @@ export default function Header({
           </button>
 
           {showChildDropdown && (
-            <div 
+            <div
               style={{
                 position: 'absolute',
                 top: '40px',
@@ -144,14 +146,14 @@ export default function Header({
 
         {/* Profile */}
         <div style={{ position: 'relative' }}>
-          <button 
-            className="header-user-profile" 
+          <button
+            className="header-user-profile"
             onClick={() => setShowUserDropdown(!showUserDropdown)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
           >
-            <img 
-              src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=100" 
-              alt="Emma Johnson" 
+            <img
+              src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=100"
+              alt="Emma Johnson"
               className="user-avatar"
             />
             <div className="user-info-text">
@@ -162,7 +164,7 @@ export default function Header({
           </button>
 
           {showUserDropdown && (
-            <div 
+            <div
               style={{
                 position: 'absolute',
                 top: '50px',
@@ -179,6 +181,9 @@ export default function Header({
               <button
                 onClick={() => {
                   setShowUserDropdown(false);
+                  if (onPageChange) {
+                    onPageChange('settings');
+                  }
                 }}
                 style={{
                   display: 'flex',
