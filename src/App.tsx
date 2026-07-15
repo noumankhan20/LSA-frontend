@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
+import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
 import Home from './pages/Home';
 import SafeguardingOverview from './pages/SafeguardingOverview';
 import SafeguardingSubpages from './pages/SafeguardingSubpages';
 import OtherPages from './pages/OtherPages';
 import SafeguardDashboard from './pages/SafeguardDashboard';
+import ProtectedRoute from './components/ProtectedRoute';
+import DashboardLayout from './components/DashboardLayout';
 
 // Auth Pages
 import LandingPage from './pages/LandingPage';
@@ -20,8 +21,34 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useGetMeQuery, useLogoutMutation } from './store/apiSlice';
 import { logout, setCredentials } from './store/slices/authSlice';
 
+// Parameterized page wrapper components for react-router params
+function SafeguardingSubpagesWrapper() {
+  const { subpage } = useParams<{ subpage: string }>();
+  return <SafeguardingSubpages subpage={subpage || 'overview'} />;
+}
+
+interface OtherPagesWrapperProps {
+  childrenList: any[];
+  onAddChild: (child: any) => void;
+  parentDetails: any;
+}
+
+function OtherPagesWrapper({ childrenList, onAddChild, parentDetails }: OtherPagesWrapperProps) {
+  const { pageId } = useParams<{ pageId: string }>();
+  return (
+    <OtherPages 
+      pageId={pageId || 'home'} 
+      childrenList={childrenList}
+      onAddChild={onAddChild}
+      parentDetails={parentDetails}
+    />
+  );
+}
+
 export default function App() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [logoutApi] = useLogoutMutation();
   
   // Authentication State from Redux
@@ -66,7 +93,7 @@ export default function App() {
       if (role === 'regional_admin' || role === 'regionaladmin' || role === 'superadmin') return '/admin-dashboard';
       return '/';
     }
-    if (page === 'raised-tickets' || page === 'welfare-logs') {
+    if (page === 'raised-tickets' || page === 'welfare-logs' || page === 'queries') {
       return '/safeguard-dashboard';
     }
     if (page === 'safeguarding') {
@@ -75,9 +102,6 @@ export default function App() {
     }
     return `/${page}`;
   };
-
-  // Simple state-based routing for Auth URLs
-  const [authRoute, setAuthRoute] = useState<string>(window.location.pathname);
 
   // Navigation Routing States (Post-Login)
   const [currentPage, setCurrentPage] = useState<string>('home');
@@ -111,34 +135,14 @@ export default function App() {
     }
   }, [userData, userError, dispatch, logoutApi]);
 
-  // Synchronize state and URL on mount or when userRole changes
+  // Synchronize state with route location
   useEffect(() => {
     if (isAuthenticated && userRole) {
-      const { page, subpage } = getPageFromPath(window.location.pathname, userRole);
+      const { page, subpage } = getPageFromPath(location.pathname, userRole);
       setCurrentPage(page);
       setCurrentSubpage(subpage);
-
-      // Replace URL if it doesn't match the standard path mapping
-      const standardPath = getPathFromPage(page, subpage, userRole);
-      if (window.location.pathname !== standardPath) {
-        window.history.replaceState({}, '', standardPath);
-      }
     }
-  }, [isAuthenticated, userRole]);
-
-  // Handle browser back/forward buttons
-  useEffect(() => {
-    const handleLocationChange = () => {
-      setAuthRoute(window.location.pathname);
-      if (isAuthenticated && userRole) {
-        const { page, subpage } = getPageFromPath(window.location.pathname, userRole);
-        setCurrentPage(page);
-        setCurrentSubpage(subpage);
-      }
-    };
-    window.addEventListener('popstate', handleLocationChange);
-    return () => window.removeEventListener('popstate', handleLocationChange);
-  }, [isAuthenticated, userRole]);
+  }, [location.pathname, isAuthenticated, userRole]);
 
   // Synchronize Children when parentDetails / userRole changes
   useEffect(() => {
@@ -177,33 +181,26 @@ export default function App() {
   const handleLoginSuccess = (_user: string, role: string, details?: any) => {
     const resolvedRole = role === 'guard' ? 'safeguard' : (details?.role ? details.role.toLowerCase() : role);
     const { page, subpage } = getPageFromPath('/', resolvedRole);
-    setCurrentPage(page);
-    setCurrentSubpage(subpage);
     const newPath = getPathFromPage(page, subpage, resolvedRole);
-    window.history.pushState({}, '', newPath);
+    navigate(newPath, { replace: true });
   };
 
   const handleRegisterSuccess = (_details: { name: string; email: string; phone: string; region: string }) => {
     const { page, subpage } = getPageFromPath('/', 'parent');
-    setCurrentPage(page);
-    setCurrentSubpage(subpage);
     const newPath = getPathFromPage(page, subpage, 'parent');
-    window.history.pushState({}, '', newPath);
+    navigate(newPath, { replace: true });
   };
 
   const handleLogout = () => {
     logoutApi();
     dispatch(logout());
-    window.history.pushState({}, '', '/');
-    setAuthRoute('/');
+    navigate('/', { replace: true });
   };
 
   const handlePageChange = (page: string, subpage?: string) => {
-    setCurrentPage(page);
     const resolvedSubpage = subpage || '';
-    setCurrentSubpage(resolvedSubpage);
     const newPath = getPathFromPage(page, resolvedSubpage, userRole);
-    window.history.pushState({}, '', newPath);
+    navigate(newPath);
   };
 
   const handleAddChild = (newChild: { name: string; year: string; dob: string; avatar: string }) => {
@@ -220,93 +217,88 @@ export default function App() {
     setSelectedChildName(newChild.name);
   };
 
-  if (!isAuthenticated) {
-    if (authRoute === '/login-hs') {
-      return <ParentStudentLogin onLoginSuccess={handleLoginSuccess} />;
-    }
-    if (authRoute === '/login-student') {
-      return <StudentLogin onLoginSuccess={handleLoginSuccess} />;
-    }
-    if (authRoute === '/login-tutn') {
-      return <TeacherStudentLogin onLoginSuccess={handleLoginSuccess} />;
-    }
-    if (authRoute === '/login-sa') {
-      return <SuperAdminLogin onLoginSuccess={handleLoginSuccess} />;
-    }
-    if (authRoute === '/login-guard') {
-      return <GuardLogin onLoginSuccess={handleLoginSuccess} />;
-    }
-    if (authRoute === '/register-hs') {
-      return <ParentRegistration onRegisterSuccess={handleRegisterSuccess} />;
-    }
-    // Default fallback is the new Landing Page
-    return <LandingPage onNavigate={setAuthRoute} />;
-  }
-
-  const isAdmin = userRole === 'regional_admin' || userRole === 'regionaladmin' || userRole === 'superadmin';
-  const isParent = userRole === 'parent';
-  const isStudent = userRole === 'student';
-  const isSafeguard = userRole === 'safeguard';
+  const renderHome = () => (
+    <Home 
+      childrenList={children}
+      selectedChildName={selectedChildName}
+      setSelectedChildName={setSelectedChildName}
+      onPageChange={handlePageChange}
+      userRole={userRole}
+      parentDetails={parentDetails}
+      onAddChild={handleAddChild}
+    />
+  );
 
   return (
-    <div className={`app-container ${isAdmin ? 'role-admin' : ''} ${isParent ? 'role-parent' : ''} ${isStudent ? 'role-student' : ''} ${isSafeguard ? 'role-safeguard' : ''}`}>
-      {/* Sidebar Navigation */}
-      <Sidebar 
-        currentPage={currentPage} 
-        currentSubpage={currentSubpage} 
-        onPageChange={handlePageChange} 
-        userRole={userRole}
-      />
+    <Routes>
+      {/* Public / Auth Routes */}
+      <Route path="/" element={
+        isAuthenticated ? (
+          <Navigate to={getPathFromPage('home', '', userRole)} replace />
+        ) : (
+          <LandingPage onNavigate={(path) => navigate(path)} />
+        )
+      } />
+      
+      <Route path="/login-hs" element={
+        isAuthenticated ? <Navigate to={getPathFromPage('home', '', userRole)} replace /> : <ParentStudentLogin onLoginSuccess={handleLoginSuccess} />
+      } />
+      <Route path="/login-student" element={
+        isAuthenticated ? <Navigate to={getPathFromPage('home', '', userRole)} replace /> : <StudentLogin onLoginSuccess={handleLoginSuccess} />
+      } />
+      <Route path="/login-tutn" element={
+        isAuthenticated ? <Navigate to={getPathFromPage('home', '', userRole)} replace /> : <TeacherStudentLogin onLoginSuccess={handleLoginSuccess} />
+      } />
+      <Route path="/login-sa" element={
+        isAuthenticated ? <Navigate to={getPathFromPage('home', '', userRole)} replace /> : <SuperAdminLogin onLoginSuccess={handleLoginSuccess} />
+      } />
+      <Route path="/login-guard" element={
+        isAuthenticated ? <Navigate to={getPathFromPage('home', '', userRole)} replace /> : <GuardLogin onLoginSuccess={handleLoginSuccess} />
+      } />
+      <Route path="/register-hs" element={
+        isAuthenticated ? <Navigate to={getPathFromPage('home', '', userRole)} replace /> : <ParentRegistration onRegisterSuccess={handleRegisterSuccess} />
+      } />
 
-      {/* Main Content Area */}
-      <main className="app-main">
-        <Header 
-          currentPage={currentPage} 
-          currentSubpage={currentSubpage} 
-          onLogout={handleLogout} 
-          selectedChildName={selectedChildName}
-          setSelectedChildName={setSelectedChildName}
-          loggedInUser={loggedInUser}
-          childrenList={children}
-          userRole={userRole}
-          onPageChange={handlePageChange}
-        />
+      {/* Protected Dashboard Routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={
+          <DashboardLayout
+            userRole={userRole}
+            loggedInUser={loggedInUser}
+            currentPage={currentPage}
+            currentSubpage={currentSubpage}
+            selectedChildName={selectedChildName}
+            setSelectedChildName={setSelectedChildName}
+            childrenList={children}
+            onPageChange={handlePageChange}
+            onLogout={handleLogout}
+          />
+        }>
+          {/* Main home dashboards */}
+          <Route path="/parent-dashboard" element={renderHome()} />
+          <Route path="/student-dashboard" element={renderHome()} />
+          <Route path="/admin-dashboard" element={renderHome()} />
 
-        <div className="app-body">
-          {currentPage === 'home' && (
-            <Home 
-              childrenList={children}
-              selectedChildName={selectedChildName}
-              setSelectedChildName={setSelectedChildName}
-              onPageChange={handlePageChange}
-              userRole={userRole}
-              parentDetails={parentDetails}
-              onAddChild={handleAddChild}
+          {/* Safeguard dashboards */}
+          <Route path="/safeguard-dashboard" element={<SafeguardDashboard />} />
+
+          {/* Safeguarding resources overview */}
+          <Route path="/safeguarding" element={<SafeguardingOverview onPageChange={handlePageChange} />} />
+          <Route path="/safeguarding/:subpage" element={<SafeguardingSubpagesWrapper />} />
+
+          {/* Other/fallback pages */}
+          <Route path="/:pageId" element={
+            <OtherPagesWrapper 
+              childrenList={children} 
+              onAddChild={handleAddChild} 
+              parentDetails={parentDetails} 
             />
-          )}
+          } />
+        </Route>
+      </Route>
 
-          {(currentPage === 'welfare-logs' || currentPage === 'raised-tickets' || currentPage === 'queries') && (
-            <SafeguardDashboard />
-          )}
-
-          {currentPage === 'safeguarding' && currentSubpage === 'overview' && (
-            <SafeguardingOverview onPageChange={handlePageChange} />
-          )}
-
-          {currentPage === 'safeguarding' && currentSubpage !== 'overview' && (
-            <SafeguardingSubpages subpage={currentSubpage} />
-          )}
-
-          {currentPage !== 'home' && currentPage !== 'safeguarding' && currentPage !== 'welfare-logs' && currentPage !== 'raised-tickets' && currentPage !== 'queries' && (
-            <OtherPages 
-              pageId={currentPage} 
-              childrenList={children}
-              onAddChild={handleAddChild}
-              parentDetails={parentDetails}
-            />
-          )}
-        </div>
-      </main>
-    </div>
+      {/* Wildcard Fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }

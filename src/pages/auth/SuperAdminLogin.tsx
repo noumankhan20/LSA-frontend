@@ -229,7 +229,7 @@ export default function SuperAdminLogin({ onLoginSuccess }: LoginProps) {
               <button className="hs-login-back" style={{ position: 'absolute', top: '1.5rem', left: '1.5rem', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#5a6557', cursor: 'pointer', background: 'none', border: 'none', padding: '6px 10px', borderRadius: '6px' }} onClick={() => { setShowForgotPassword(false); setForgotStep(1); setForgotError(null); setForgotMessage(null); }}>
                 <ChevronLeft size={16} /> Back to Sign In
               </button>
-              
+
               <div className="sa-card">
                 <div className="sa-brand">
                   <img src="/ilmee_logo.png" alt="ILMEE Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'contain', marginBottom: '8px' }} />
@@ -342,7 +342,7 @@ export default function SuperAdminLogin({ onLoginSuccess }: LoginProps) {
                 <div className="sa-brand">
                   <img src="/ilmee_logo.png" alt="ILMEE Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'contain', marginBottom: '8px' }} />
                   <span className="sa-brand-name">LSA</span>
-                  <span className="sa-brand-sub">Super Admin Portal</span>
+                  <span className="sa-brand-sub">Regional Admin Portal</span>
                 </div>
 
                 <h2 className="sa-heading">Administrator Access</h2>

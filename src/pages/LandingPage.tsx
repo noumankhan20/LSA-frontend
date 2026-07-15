@@ -29,7 +29,6 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
     } else {
       localStorage.removeItem('login_role');
     }
-    window.history.pushState({}, '', route);
     onNavigate(route);
   };
 
